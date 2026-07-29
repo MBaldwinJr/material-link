@@ -26,7 +26,7 @@ export function MetricCard({ label, value, hint, icon, tone = "default" }: Metri
           <p className="text-muted-foreground text-xs font-medium uppercase tracking-wide">
             {label}
           </p>
-          <p className="text-foreground mt-2 truncate text-2xl font-semibold">{value}</p>
+          <p className="text-foreground mt-2 text-xl font-semibold break-words">{value}</p>
           {hint ? <p className="text-muted-foreground mt-1 text-xs">{hint}</p> : null}
         </div>
         <span className={cn("flex size-10 items-center justify-center rounded-lg", TONE_CLASS[tone])}>
