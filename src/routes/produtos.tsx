@@ -12,6 +12,7 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
+import { ProdutoImportDialog } from "@/features/produtos/components/produto-import-dialog";
 import { useProdutos } from "@/hooks/use-intermat";
 import { useHydrated } from "@/hooks/use-hydrated";
 import { formatCurrency } from "@/lib/format";
@@ -43,6 +44,10 @@ function ProdutosPage() {
       title="Produtos e materiais"
       description="Catálogo sincronizado com o estoque, com alerta de nível mínimo."
     >
+      <div className="mb-4 flex justify-end">
+        <ProdutoImportDialog />
+      </div>
+
       {!hydrated || !produtos ? (
         <LoadingGrid />
       ) : produtos.length === 0 ? (

@@ -1,7 +1,13 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 
 import { createEmpresa, listEmpresas, type EmpresaInput } from "@/services/empresa-service";
-import { createProduto, listProdutos, type ProdutoInput } from "@/services/produto-service";
+import {
+  createProduto,
+  importProdutos,
+  listProdutos,
+  type ProdutoInput,
+} from "@/services/produto-service";
+import type { ProdutoImportRow } from "@/features/produtos/lib/produto-import";
 import {
   createEmprestimo,
   listDevolucoes,
@@ -105,6 +111,15 @@ export function useRegistrarDevolucao() {
   const invalidate = useInvalidateAll();
   return useMutation({
     mutationFn: async (input: DevolucaoInput) => registrarDevolucao(input),
+    onSuccess: invalidate,
+  });
+}
+
+export function useImportProdutos() {
+  const invalidate = useInvalidateAll();
+  return useMutation({
+    mutationFn: async (input: { rows: readonly ProdutoImportRow[]; origem: string }) =>
+      importProdutos(input.rows, input.origem),
     onSuccess: invalidate,
   });
 }
