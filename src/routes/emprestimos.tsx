@@ -1,7 +1,7 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useForm } from "react-hook-form";
-import { useState } from "react";
+import { useMemo, useState } from "react";
 import { toast } from "sonner";
 import { Plus } from "lucide-react";
 import { z } from "zod";
@@ -123,7 +123,7 @@ function EmprestimosPage() {
     const termo = produtoBusca.trim().toLowerCase();
     if (!termo) return produtos ?? [];
     return (produtos ?? []).filter(
-      (produto) =>
+      (produto: { readonly descricao: string; readonly codigo: string }) =>
         produto.descricao.toLowerCase().includes(termo) ||
         produto.codigo.toLowerCase().includes(termo),
     );
