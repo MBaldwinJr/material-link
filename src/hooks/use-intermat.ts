@@ -1,7 +1,13 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 
 import { createEmpresa, listEmpresas, type EmpresaInput } from "@/services/empresa-service";
-import { createProduto, listProdutos, type ProdutoInput } from "@/services/produto-service";
+import {
+  createProduto,
+  importProdutos,
+  listProdutos,
+  type ProdutoInput,
+} from "@/services/produto-service";
+import type { ProdutoImportRow } from "@/features/produtos/lib/produto-import";
 import {
   createEmprestimo,
   listDevolucoes,
