@@ -153,7 +153,7 @@ export function ProdutoImportDialog() {
               ) : null}
               {result.errors.length > 0 ? (
                 <Alert>
-                  <AlertTitle>{result.errors.length} linhas ignoradas</AlertTitle>
+                  <AlertTitle>Avisos da leitura</AlertTitle>
                   <AlertDescription>{result.errors.slice(0, 3).join(" ")}</AlertDescription>
                 </Alert>
               ) : null}
