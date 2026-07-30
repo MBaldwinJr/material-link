@@ -1,7 +1,7 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useForm } from "react-hook-form";
-import { useState } from "react";
+import { useMemo, useState } from "react";
 import { toast } from "sonner";
 import { Plus } from "lucide-react";
 import { z } from "zod";
@@ -101,6 +101,7 @@ function EmprestimosPage() {
   const { data: operacional } = useOperacional();
   const createMutation = useCreateEmprestimo();
   const [open, setOpen] = useState(false);
+  const [produtoBusca, setProdutoBusca] = useState("");
 
   const form = useForm<FormValues>({
     resolver: zodResolver(schema),
@@ -117,6 +118,16 @@ function EmprestimosPage() {
       observacoes: "",
     },
   });
+
+  const produtosFiltrados = useMemo(() => {
+    const termo = produtoBusca.trim().toLowerCase();
+    if (!termo) return produtos ?? [];
+    return (produtos ?? []).filter(
+      (produto: { readonly descricao: string; readonly codigo: string }) =>
+        produto.descricao.toLowerCase().includes(termo) ||
+        produto.codigo.toLowerCase().includes(termo),
+    );
+  }, [produtos, produtoBusca]);
 
   const onSubmit = form.handleSubmit((values) => {
     const parsed = schema.parse(values);
@@ -143,6 +154,7 @@ function EmprestimosPage() {
         onSuccess: () => {
           toast.success("Empréstimo registrado. Estoque atualizado automaticamente.");
           form.reset({ ...form.getValues(), quantidade: 1, observacoes: "" });
+          setProdutoBusca("");
           setOpen(false);
         },
         onError: () => toast.error("Não foi possível registrar o empréstimo."),
@@ -155,7 +167,10 @@ function EmprestimosPage() {
       title="Empréstimos"
       description="Cada confirmação reduz o estoque, gera movimentação e atualiza o saldo da empresa."
       actions={
-        <Dialog open={open} onOpenChange={setOpen}>
+        <Dialog open={open} onOpenChange={(nextOpen) => {
+          setOpen(nextOpen);
+          if (!nextOpen) setProdutoBusca("");
+        }}>
           <DialogTrigger asChild>
             <Button>
               <Plus className="size-4" /> Novo empréstimo
@@ -191,12 +206,19 @@ function EmprestimosPage() {
                     </FormItem>
                   )}
                 />
-                <FormField
-                  control={form.control}
-                  name="produtoId"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel>Produto</FormLabel>
+                <FormItem className="flex flex-col gap-1">
+                  <FormLabel>Produto</FormLabel>
+                  <Input
+                    placeholder="Buscar por código ou descrição..."
+                    value={produtoBusca}
+                    onChange={(event) => setProdutoBusca(event.target.value)}
+                    className="mb-1"
+                    aria-label="Buscar produto por código ou descrição"
+                  />
+                  <FormField
+                    control={form.control}
+                    name="produtoId"
+                    render={({ field }) => (
                       <Select
                         onValueChange={(value) => {
                           field.onChange(value);
@@ -213,17 +235,22 @@ function EmprestimosPage() {
                           </SelectTrigger>
                         </FormControl>
                         <SelectContent>
-                          {(produtos ?? []).map((produto) => (
+                          {produtosFiltrados.map((produto) => (
                             <SelectItem key={produto.id} value={produto.id}>
-                              {produto.descricao} ({produto.estoqueAtual} {produto.unidade})
+                              {produto.codigo} · {produto.descricao} ({produto.estoqueAtual} {produto.unidade})
                             </SelectItem>
                           ))}
+                          {produtosFiltrados.length === 0 && (
+                            <SelectItem value="" disabled>
+                              Nenhum produto encontrado
+                            </SelectItem>
+                          )}
                         </SelectContent>
                       </Select>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
+                    )}
+                  />
+                  <FormMessage />
+                </FormItem>
                 <NumberField control={form.control} name="quantidade" label="Quantidade" />
                 <NumberField
                   control={form.control}
