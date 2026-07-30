@@ -206,19 +206,19 @@ function EmprestimosPage() {
                     </FormItem>
                   )}
                 />
-                <FormItem className="flex flex-col gap-1">
-                  <FormLabel>Produto</FormLabel>
-                  <Input
-                    placeholder="Buscar por código ou descrição..."
-                    value={produtoBusca}
-                    onChange={(event) => setProdutoBusca(event.target.value)}
-                    className="mb-1"
-                    aria-label="Buscar produto por código ou descrição"
-                  />
-                  <FormField
-                    control={form.control}
-                    name="produtoId"
-                    render={({ field }) => (
+                <FormField
+                  control={form.control}
+                  name="produtoId"
+                  render={({ field }) => (
+                    <FormItem className="flex flex-col gap-1">
+                      <FormLabel>Produto</FormLabel>
+                      <Input
+                        placeholder="Buscar por código ou descrição..."
+                        value={produtoBusca}
+                        onChange={(event) => setProdutoBusca(event.target.value)}
+                        className="mb-1"
+                        aria-label="Buscar produto por código ou descrição"
+                      />
                       <Select
                         onValueChange={(value) => {
                           field.onChange(value);
@@ -235,22 +235,25 @@ function EmprestimosPage() {
                           </SelectTrigger>
                         </FormControl>
                         <SelectContent>
-                          {produtosFiltrados.map((produto) => (
-                            <SelectItem key={produto.id} value={produto.id}>
-                              {produto.codigo} · {produto.descricao} ({produto.estoqueAtual} {produto.unidade})
-                            </SelectItem>
-                          ))}
-                          {produtosFiltrados.length === 0 && (
-                            <SelectItem value="" disabled>
+                          {produtosFiltrados.length === 0 ? (
+                            <div className="text-muted-foreground px-2 py-1.5 text-sm">
                               Nenhum produto encontrado
-                            </SelectItem>
+                            </div>
+                          ) : (
+                            produtosFiltrados.map((produto) => (
+                              <SelectItem key={produto.id} value={produto.id}>
+                                {produto.codigo} · {produto.descricao} ({produto.estoqueAtual}{" "}
+                                {produto.unidade})
+                              </SelectItem>
+                            ))
                           )}
                         </SelectContent>
                       </Select>
-                    )}
-                  />
-                  <FormMessage />
-                </FormItem>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+
                 <NumberField control={form.control} name="quantidade" label="Quantidade" />
                 <NumberField
                   control={form.control}
