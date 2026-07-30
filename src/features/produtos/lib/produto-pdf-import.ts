@@ -107,7 +107,7 @@ export async function parseProdutoPdf(file: File): Promise<ProdutoImportResult> 
     page.cleanup();
   }
 
-  await document.destroy();
+  document.cleanup();
 
   const errors = skipped > 0 ? [`${skipped} linhas não reconhecidas foram ignoradas.`] : [];
   return {
