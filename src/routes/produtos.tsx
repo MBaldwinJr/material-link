@@ -12,6 +12,7 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
+import { ProdutoImportDialog } from "@/features/produtos/components/produto-import-dialog";
 import { useProdutos } from "@/hooks/use-intermat";
 import { useHydrated } from "@/hooks/use-hydrated";
 import { formatCurrency } from "@/lib/format";
