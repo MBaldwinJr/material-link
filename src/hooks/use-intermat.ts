@@ -114,3 +114,12 @@ export function useRegistrarDevolucao() {
     onSuccess: invalidate,
   });
 }
+
+export function useImportProdutos() {
+  const invalidate = useInvalidateAll();
+  return useMutation({
+    mutationFn: async (input: { rows: readonly ProdutoImportRow[]; origem: string }) =>
+      importProdutos(input.rows, input.origem),
+    onSuccess: invalidate,
+  });
+}
