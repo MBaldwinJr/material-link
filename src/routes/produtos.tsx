@@ -43,6 +43,10 @@ function ProdutosPage() {
       title="Produtos e materiais"
       description="Catálogo sincronizado com o estoque, com alerta de nível mínimo."
     >
+      <div className="mb-4 flex justify-end">
+        <ProdutoImportDialog />
+      </div>
+
       {!hydrated || !produtos ? (
         <LoadingGrid />
       ) : produtos.length === 0 ? (
