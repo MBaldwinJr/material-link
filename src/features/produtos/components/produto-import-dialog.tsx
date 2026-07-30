@@ -28,8 +28,8 @@ import {
   type ProdutoImportResult,
 } from "@/features/produtos/lib/produto-import";
 
-const ACCEPTED = ".csv,.xlsx,.xls,.txt";
-const MAX_FILE_BYTES = 10 * 1024 * 1024;
+const ACCEPTED = ".pdf,.csv,.xlsx,.xls,.txt";
+const MAX_FILE_BYTES = 25 * 1024 * 1024;
 const PREVIEW_LIMIT = 8;
 
 export function ProdutoImportDialog() {
@@ -51,7 +51,7 @@ export function ProdutoImportDialog() {
 
   const handleFile = useCallback(async (file: File) => {
     if (file.size > MAX_FILE_BYTES) {
-      toast.error("Arquivo muito grande", { description: "O limite é de 10 MB." });
+      toast.error("Arquivo muito grande", { description: "O limite é de 25 MB." });
       return;
     }
     setParsing(true);
@@ -61,7 +61,7 @@ export function ProdutoImportDialog() {
     } catch {
       setResult(null);
       toast.error("Não foi possível ler o arquivo", {
-        description: "Use um relatório em CSV, XLS ou XLSX exportado do seu ERP.",
+        description: "Use um relatório em PDF, CSV, XLS ou XLSX exportado do seu ERP.",
       });
     } finally {
       setParsing(false);
@@ -96,7 +96,7 @@ export function ProdutoImportDialog() {
         <DialogHeader>
           <DialogTitle>Importar relatório do ERP</DialogTitle>
           <DialogDescription>
-            Aceita CSV, XLS e XLSX. As colunas são reconhecidas automaticamente (código, descrição,
+            Aceita PDF (Relatório Estoque Produto), CSV, XLS e XLSX. As colunas são reconhecidas automaticamente (código, descrição,
             marca, categoria, fornecedor, unidade, custo, venda, estoque, mínimo e localização).
           </DialogDescription>
         </DialogHeader>
@@ -110,7 +110,7 @@ export function ProdutoImportDialog() {
             <span className="text-sm font-medium">
               {fileName ?? "Selecionar arquivo do relatório"}
             </span>
-            <span className="text-muted-foreground text-xs">Tamanho máximo de 10 MB</span>
+            <span className="text-muted-foreground text-xs">Tamanho máximo de 25 MB</span>
             <input
               ref={inputRef}
               id="produto-import-file"

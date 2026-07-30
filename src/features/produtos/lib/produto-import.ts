@@ -110,6 +110,11 @@ export function mapRecordsToProdutos(
 }
 
 export async function parseProdutoFile(file: File): Promise<ProdutoImportResult> {
+  if (/\.pdf$/i.test(file.name) || file.type === "application/pdf") {
+    const { parseProdutoPdf } = await import("./produto-pdf-import");
+    return parseProdutoPdf(file);
+  }
+
   const { read, utils } = await import("xlsx");
   const buffer = await file.arrayBuffer();
   const workbook = read(buffer, { type: "array" });
