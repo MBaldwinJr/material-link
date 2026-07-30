@@ -206,19 +206,27 @@ function EmprestimosPage() {
                     </FormItem>
                   )}
                 />
+                <div className="flex flex-col gap-1">
+                  <label
+                    htmlFor="produto-busca"
+                    className="text-sm leading-none font-medium"
+                  >
+                    Buscar produto
+                  </label>
+                  <Input
+                    id="produto-busca"
+                    placeholder="Código ou parte da descrição..."
+                    value={produtoBusca}
+                    onChange={(event) => setProdutoBusca(event.target.value)}
+                    aria-label="Buscar produto por código ou descrição"
+                  />
+                </div>
                 <FormField
                   control={form.control}
                   name="produtoId"
                   render={({ field }) => (
-                    <FormItem className="flex flex-col gap-1">
+                    <FormItem>
                       <FormLabel>Produto</FormLabel>
-                      <Input
-                        placeholder="Buscar por código ou descrição..."
-                        value={produtoBusca}
-                        onChange={(event) => setProdutoBusca(event.target.value)}
-                        className="mb-1"
-                        aria-label="Buscar produto por código ou descrição"
-                      />
                       <Select
                         onValueChange={(value) => {
                           field.onChange(value);
@@ -240,7 +248,7 @@ function EmprestimosPage() {
                               Nenhum produto encontrado
                             </div>
                           ) : (
-                            produtosFiltrados.map((produto) => (
+                            produtosFiltrados.slice(0, 100).map((produto) => (
                               <SelectItem key={produto.id} value={produto.id}>
                                 {produto.codigo} · {produto.descricao} ({produto.estoqueAtual}{" "}
                                 {produto.unidade})
@@ -253,6 +261,7 @@ function EmprestimosPage() {
                     </FormItem>
                   )}
                 />
+
 
                 <NumberField control={form.control} name="quantidade" label="Quantidade" />
                 <NumberField
