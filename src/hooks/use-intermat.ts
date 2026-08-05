@@ -49,8 +49,8 @@ export function useOperacional() {
       const [auditRes, moveRes, driversRes, vehiclesRes] = await Promise.all([
         supabase.from("auditoria").select("*").order("data", { ascending: false }),
         supabase.from("movimentacoes_estoque").select("*").order("data", { ascending: false }),
-        supabase.from("motoristas").select("*").order("nome"),
-        supabase.from("veiculos").select("*").order("placa"),
+        supabase.from("motoristas" as any).select("*").order("nome"),
+        supabase.from("veiculos" as any).select("*").order("placa"),
       ]);
 
       const motoristas = (driversRes.data as any[] || []).map(row => ({
