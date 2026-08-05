@@ -81,7 +81,7 @@ export function useOperacional() {
         acao: row.acao,
         entidade: row.entidade,
         data: row.data,
-        detalhes: typeof row.detalhes === 'string' ? row.detalhes : JSON.stringify(row.detalhes)
+        detalhes: typeof (row as any).detalhes === 'string' ? (row as any).detalhes : JSON.stringify((row as any).detalhes)
       }));
 
       return { motoristas, veiculos, movimentacoes, auditoria };
