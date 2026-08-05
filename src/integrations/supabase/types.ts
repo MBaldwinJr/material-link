@@ -14,7 +14,299 @@ export type Database = {
   }
   public: {
     Tables: {
-      [_ in never]: never
+      auditoria: {
+        Row: {
+          acao: string
+          data: string
+          detalhes: Json | null
+          entidade: string
+          id: string
+          usuario: string | null
+        }
+        Insert: {
+          acao: string
+          data?: string
+          detalhes?: Json | null
+          entidade: string
+          id?: string
+          usuario?: string | null
+        }
+        Update: {
+          acao?: string
+          data?: string
+          detalhes?: Json | null
+          entidade?: string
+          id?: string
+          usuario?: string | null
+        }
+        Relationships: []
+      }
+      devolucoes: {
+        Row: {
+          criado_em: string | null
+          data: string
+          emprestimo_id: string
+          id: string
+          observacoes: string | null
+          quantidade: number
+          responsavel: string | null
+          tipo: string
+        }
+        Insert: {
+          criado_em?: string | null
+          data?: string
+          emprestimo_id: string
+          id?: string
+          observacoes?: string | null
+          quantidade: number
+          responsavel?: string | null
+          tipo: string
+        }
+        Update: {
+          criado_em?: string | null
+          data?: string
+          emprestimo_id?: string
+          id?: string
+          observacoes?: string | null
+          quantidade?: number
+          responsavel?: string | null
+          tipo?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "devolucoes_emprestimo_id_fkey"
+            columns: ["emprestimo_id"]
+            isOneToOne: false
+            referencedRelation: "emprestimos"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      empresas: {
+        Row: {
+          cidade: string | null
+          cnpj: string
+          criado_em: string | null
+          email: string | null
+          estado: string | null
+          id: string
+          inscricao_estadual: string | null
+          limite_centavos: number
+          nome_fantasia: string
+          observacoes: string | null
+          prazo_padrao_dias: number
+          razao_social: string
+          responsavel: string | null
+          status: string
+          telefone: string | null
+          whatsapp: string | null
+        }
+        Insert: {
+          cidade?: string | null
+          cnpj: string
+          criado_em?: string | null
+          email?: string | null
+          estado?: string | null
+          id?: string
+          inscricao_estadual?: string | null
+          limite_centavos?: number
+          nome_fantasia: string
+          observacoes?: string | null
+          prazo_padrao_dias?: number
+          razao_social: string
+          responsavel?: string | null
+          status?: string
+          telefone?: string | null
+          whatsapp?: string | null
+        }
+        Update: {
+          cidade?: string | null
+          cnpj?: string
+          criado_em?: string | null
+          email?: string | null
+          estado?: string | null
+          id?: string
+          inscricao_estadual?: string | null
+          limite_centavos?: number
+          nome_fantasia?: string
+          observacoes?: string | null
+          prazo_padrao_dias?: number
+          razao_social?: string
+          responsavel?: string | null
+          status?: string
+          telefone?: string | null
+          whatsapp?: string | null
+        }
+        Relationships: []
+      }
+      emprestimos: {
+        Row: {
+          criado_em: string | null
+          data: string
+          empresa_id: string
+          id: string
+          motorista: string | null
+          numero: string
+          observacoes: string | null
+          prazo_devolucao: string
+          produto_id: string
+          quantidade: number
+          quantidade_devolvida: number
+          responsavel: string | null
+          status: string
+          valor_unitario_centavos: number
+          veiculo: string | null
+        }
+        Insert: {
+          criado_em?: string | null
+          data?: string
+          empresa_id: string
+          id?: string
+          motorista?: string | null
+          numero: string
+          observacoes?: string | null
+          prazo_devolucao: string
+          produto_id: string
+          quantidade: number
+          quantidade_devolvida?: number
+          responsavel?: string | null
+          status?: string
+          valor_unitario_centavos?: number
+          veiculo?: string | null
+        }
+        Update: {
+          criado_em?: string | null
+          data?: string
+          empresa_id?: string
+          id?: string
+          motorista?: string | null
+          numero?: string
+          observacoes?: string | null
+          prazo_devolucao?: string
+          produto_id?: string
+          quantidade?: number
+          quantidade_devolvida?: number
+          responsavel?: string | null
+          status?: string
+          valor_unitario_centavos?: number
+          veiculo?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "emprestimos_empresa_id_fkey"
+            columns: ["empresa_id"]
+            isOneToOne: false
+            referencedRelation: "empresas"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "emprestimos_produto_id_fkey"
+            columns: ["produto_id"]
+            isOneToOne: false
+            referencedRelation: "produtos"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      movimentacoes_estoque: {
+        Row: {
+          data: string
+          empresa_id: string | null
+          id: string
+          origem: string | null
+          produto_id: string
+          quantidade: number
+          tipo: string
+          usuario: string | null
+        }
+        Insert: {
+          data?: string
+          empresa_id?: string | null
+          id?: string
+          origem?: string | null
+          produto_id: string
+          quantidade: number
+          tipo: string
+          usuario?: string | null
+        }
+        Update: {
+          data?: string
+          empresa_id?: string | null
+          id?: string
+          origem?: string | null
+          produto_id?: string
+          quantidade?: number
+          tipo?: string
+          usuario?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "movimentacoes_estoque_empresa_id_fkey"
+            columns: ["empresa_id"]
+            isOneToOne: false
+            referencedRelation: "empresas"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "movimentacoes_estoque_produto_id_fkey"
+            columns: ["produto_id"]
+            isOneToOne: false
+            referencedRelation: "produtos"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      produtos: {
+        Row: {
+          categoria: string | null
+          codigo: string
+          codigo_barras: string | null
+          criado_em: string | null
+          custo_centavos: number
+          descricao: string
+          estoque_atual: number
+          estoque_minimo: number
+          fornecedor: string | null
+          id: string
+          localizacao: string | null
+          marca: string | null
+          unidade: string
+          venda_centavos: number
+        }
+        Insert: {
+          categoria?: string | null
+          codigo: string
+          codigo_barras?: string | null
+          criado_em?: string | null
+          custo_centavos?: number
+          descricao: string
+          estoque_atual?: number
+          estoque_minimo?: number
+          fornecedor?: string | null
+          id?: string
+          localizacao?: string | null
+          marca?: string | null
+          unidade: string
+          venda_centavos?: number
+        }
+        Update: {
+          categoria?: string | null
+          codigo?: string
+          codigo_barras?: string | null
+          criado_em?: string | null
+          custo_centavos?: number
+          descricao?: string
+          estoque_atual?: number
+          estoque_minimo?: number
+          fornecedor?: string | null
+          id?: string
+          localizacao?: string | null
+          marca?: string | null
+          unidade?: string
+          venda_centavos?: number
+        }
+        Relationships: []
+      }
     }
     Views: {
       [_ in never]: never
