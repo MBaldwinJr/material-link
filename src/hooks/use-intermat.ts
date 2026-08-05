@@ -1,28 +1,23 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-
-import { createEmpresa, listEmpresas, type EmpresaInput } from "@/services/empresa-service";
-import {
-  createProduto,
-  importProdutos,
-  listProdutos,
-  type ProdutoInput,
-} from "@/services/produto-service";
-import type { ProdutoImportRow } from "@/features/produtos/lib/produto-import";
-import {
+import { 
+  listEmpresas, 
+  createEmpresa, 
+  listProdutos, 
+  createProduto, 
+  listEmprestimos, 
   createEmprestimo,
-  listDevolucoes,
-  listEmprestimos,
+  getDashboardData,
   registrarDevolucao,
-  type DevolucaoInput,
-  type EmprestimoInput,
-} from "@/services/emprestimo-service";
-import {
-  getDashboardMetrics,
-  getRankingEmpresas,
-  getRankingProdutos,
-  getSerieMensal,
-} from "@/services/dashboard-service";
-import { getDatabase } from "@/services/mock-db";
+  listDevolucoes,
+  importProdutos
+} from "@/services/cloud-service";
+import type { 
+  EmpresaInput, 
+  ProdutoInput, 
+  EmprestimoInput, 
+  DevolucaoInput 
+} from "@/services/cloud-service";
+import type { ProdutoImportRow } from "@/features/produtos/lib/produto-import";
 
 const KEYS = {
   empresas: ["empresas"] as const,
@@ -52,14 +47,47 @@ export function useDevolucoes() {
 export function useOperacional() {
   return useQuery({
     queryKey: KEYS.operacional,
-    queryFn: () => {
-      const db = getDatabase();
-      return {
-        motoristas: db.motoristas,
-        veiculos: db.veiculos,
-        movimentacoes: db.movimentacoes,
-        auditoria: db.auditoria,
-      };
+    queryFn: async () => {
+      const { supabase } = await import("@/integrations/supabase/client");
+      const [auditRes, moveRes, driversRes, vehiclesRes] = await Promise.all([
+        supabase.from("auditoria").select("*").order("data", { ascending: false }),
+        supabase.from("movimentacoes_estoque").select("*").order("data", { ascending: false }),
+        supabase.from("motoristas" as any).select("*").order("nome"),
+        supabase.from("veiculos" as any).select("*").order("placa"),
+      ]);
+
+      const motoristas = (driversRes.data as any[] || []).map(row => ({
+        id: row.id,
+        nome: row.nome,
+        cnh: row.cnh,
+        telefone: row.telefone
+      }));
+      const veiculos = (vehiclesRes.data as any[] || []).map(row => ({
+        id: row.id,
+        placa: row.placa,
+        modelo: row.modelo,
+        capacidade: row.capacidade
+      }));
+      const movimentacoes = (moveRes.data as any[] || []).map(row => ({
+        id: row.id,
+        produtoId: row.produto_id,
+        empresaId: row.empresa_id,
+        tipo: row.tipo as any,
+        quantidade: Number(row.quantidade),
+        usuario: row.usuario,
+        data: row.data,
+        origem: row.origem
+      }));
+      const auditoria = (auditRes.data as any[] || []).map(row => ({
+        id: row.id,
+        usuario: row.usuario,
+        acao: row.acao,
+        entidade: row.entidade,
+        data: row.data,
+        detalhes: typeof (row as any).detalhes === 'string' ? (row as any).detalhes : JSON.stringify((row as any).detalhes)
+      }));
+
+      return { motoristas, veiculos, movimentacoes, auditoria };
     },
   });
 }
@@ -67,12 +95,7 @@ export function useOperacional() {
 export function useDashboard() {
   return useQuery({
     queryKey: KEYS.dashboard,
-    queryFn: () => ({
-      metrics: getDashboardMetrics(),
-      serie: getSerieMensal(),
-      rankingEmpresas: getRankingEmpresas(),
-      rankingProdutos: getRankingProdutos(),
-    }),
+    queryFn: () => getDashboardData(),
   });
 }
 
