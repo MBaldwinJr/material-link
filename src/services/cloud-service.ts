@@ -219,6 +219,22 @@ export async function getDashboardData() {
   const emAberto = l.filter(x => x.status !== 'devolvido');
   const atrasados = l.filter(x => x.status === 'atrasado');
 
+  // Simple series for chart
+  const serie = [
+    { mes: "Atual", emprestimos: Math.round(totalEmprestado/100), devolucoes: Math.round(totalDevolvido/100) }
+  ];
+
+  const rankingEmpresas = (companies || []).map(c => {
+    const valor = l.filter(loan => loan.empresaId === c.id && loan.status !== 'devolvido')
+                   .reduce((s, loan) => s + (loan.quantidade - loan.quantidadeDevolvida) * loan.valorUnitarioCentavos, 0);
+    return { nome: c.nome_fantasia, valor: Math.round(valor / 100) };
+  }).sort((a,b) => b.valor - a.valor).slice(0, 5);
+
+  const rankingProdutos = (products || []).map(p => {
+    const valor = l.filter(loan => loan.produtoId === p.id).reduce((s, x) => s + x.quantidade, 0);
+    return { nome: p.descricao, valor };
+  }).sort((a,b) => b.valor - a.valor).slice(0, 5);
+
   return {
     metrics: {
       totalEmprestadoCentavos: totalEmprestado,
@@ -227,11 +243,11 @@ export async function getDashboardData() {
       emprestimosAtivos: emAberto.length,
       empresasComPendencia: new Set(emAberto.map(x => x.empresaId)).size,
       materiaisEmAtraso: atrasados.reduce((s, x) => s + (x.quantidade - x.quantidadeDevolvida), 0),
-      tempoMedioDevolucaoDias: 0, // Simplified for now
+      tempoMedioDevolucaoDias: 0,
       capitalParadoCentavos: atrasados.reduce((s, x) => s + (x.quantidade - x.quantidadeDevolvida) * x.valorUnitarioCentavos, 0),
     },
-    serie: [], // Would need grouping logic
-    rankingEmpresas: [],
-    rankingProdutos: []
+    serie,
+    rankingEmpresas,
+    rankingProdutos
   };
 }
