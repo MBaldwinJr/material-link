@@ -208,6 +208,30 @@ export type Database = {
           },
         ]
       }
+      motoristas: {
+        Row: {
+          cnh: string
+          criado_em: string | null
+          id: string
+          nome: string
+          telefone: string | null
+        }
+        Insert: {
+          cnh: string
+          criado_em?: string | null
+          id?: string
+          nome: string
+          telefone?: string | null
+        }
+        Update: {
+          cnh?: string
+          criado_em?: string | null
+          id?: string
+          nome?: string
+          telefone?: string | null
+        }
+        Relationships: []
+      }
       movimentacoes_estoque: {
         Row: {
           data: string
@@ -304,6 +328,30 @@ export type Database = {
           marca?: string | null
           unidade?: string
           venda_centavos?: number
+        }
+        Relationships: []
+      }
+      veiculos: {
+        Row: {
+          capacidade: string | null
+          criado_em: string | null
+          id: string
+          modelo: string
+          placa: string
+        }
+        Insert: {
+          capacidade?: string | null
+          criado_em?: string | null
+          id?: string
+          modelo: string
+          placa: string
+        }
+        Update: {
+          capacidade?: string | null
+          criado_em?: string | null
+          id?: string
+          modelo?: string
+          placa?: string
         }
         Relationships: []
       }
