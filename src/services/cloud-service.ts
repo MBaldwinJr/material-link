@@ -8,8 +8,31 @@ import type {
   MovimentacaoEstoque,
   Motorista,
   Veiculo,
-  RegistroAuditoria
+  RegistroAuditoria,
+  DevolucaoTipo
 } from "@/types/domain";
+
+export interface EmpresaInput extends Omit<Empresa, "id" | "criadoEm"> {}
+export interface ProdutoInput extends Omit<Produto, "id"> {}
+export interface EmprestimoInput {
+  readonly empresaId: string;
+  readonly produtoId: string;
+  readonly quantidade: number;
+  readonly valorUnitarioCentavos: number;
+  readonly data: string;
+  readonly prazoDevolucao: string;
+  readonly responsavel: string;
+  readonly motorista: string;
+  readonly veiculo: string;
+  readonly observacoes: string;
+}
+export interface DevolucaoInput {
+  readonly emprestimoId: string;
+  readonly tipo: DevolucaoTipo;
+  readonly quantidade: number;
+  readonly responsavel: string;
+  readonly observacoes: string;
+}
 
 // Utility to convert snake_case (DB) to camelCase (Domain)
 function mapEmpresa(row: any): Empresa {
@@ -196,6 +219,80 @@ export async function createEmprestimo(input: any): Promise<Emprestimo> {
 
   await logAuditoria("Criação de empréstimo", numero, `${input.quantidade} un. movimentadas.`);
   return mapEmprestimo(loan);
+}
+
+export async function registrarDevolucao(input: DevolucaoInput): Promise<Devolucao> {
+  const { data: devolucao, error } = await supabase
+    .from("devolucoes")
+    .insert({
+      emprestimo_id: input.emprestimoId,
+      tipo: input.tipo,
+      quantidade: input.quantidade,
+      responsavel: input.responsavel,
+      observacoes: input.observacoes,
+      data: new Date().toISOString()
+    })
+    .select()
+    .single();
+    
+  if (error) throw error;
+
+  // Update loan quantity
+  const { data: loan } = await supabase.from("emprestimos").select("quantidade_devolvida, numero, produto_id, empresa_id").eq("id", input.emprestimoId).single();
+  if (loan) {
+    await supabase.from("emprestimos")
+      .update({ quantidade_devolvida: (Number(loan.quantidade_devolvida) || 0) + input.quantidade })
+      .eq("id", input.emprestimoId);
+
+    // Update stock if applicable
+    if (input.tipo === "total" || input.tipo === "parcial") {
+      const { data: product } = await supabase.from("produtos").select("estoque_atual").eq("id", loan.produto_id).single();
+      if (product) {
+        await supabase.from("produtos")
+          .update({ estoque_atual: Number(product.estoque_atual) + input.quantidade })
+          .eq("id", loan.produto_id);
+      }
+      
+      await supabase.from("movimentacoes_estoque").insert({
+        produto_id: loan.produto_id,
+        empresa_id: loan.empresa_id,
+        tipo: "entrada",
+        quantidade: input.quantidade,
+        usuario: input.responsavel,
+        data: new Date().toISOString(),
+        origem: loan.numero
+      });
+    }
+    
+    await logAuditoria(`Devolução (${input.tipo})`, loan.numero || 'N/A', input.observacoes || `${input.quantidade} un.`);
+  }
+
+  return {
+    id: devolucao.id,
+    emprestimoId: devolucao.emprestimo_id,
+    tipo: devolucao.tipo as any,
+    quantidade: Number(devolucao.quantidade),
+    data: devolucao.data,
+    responsavel: devolucao.responsavel || '',
+    observacoes: devolucao.observacoes || ''
+  };
+}
+
+export async function listDevolucoes(): Promise<Devolucao[]> {
+  const { data, error } = await supabase
+    .from("devolucoes")
+    .select("*")
+    .order("data", { ascending: false });
+  if (error) throw error;
+  return (data || []).map(row => ({
+    id: row.id,
+    emprestimoId: row.emprestimo_id,
+    tipo: row.tipo as any,
+    quantidade: Number(row.quantidade),
+    data: row.data,
+    responsavel: row.responsavel || '',
+    observacoes: row.observacoes || ''
+  }));
 }
 
 async function logAuditoria(acao: string, entidade: string, detalhes: string) {

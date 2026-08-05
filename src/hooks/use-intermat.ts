@@ -7,12 +7,16 @@ import {
   createProduto, 
   listEmprestimos, 
   createEmprestimo,
-  getDashboardData
+  getDashboardData,
+  registrarDevolucao,
+  listDevolucoes
 } from "@/services/cloud-service";
-import type { EmpresaInput } from "@/services/empresa-service";
-import type { ProdutoInput } from "@/services/produto-service";
-import type { EmprestimoInput, DevolucaoInput } from "@/services/emprestimo-service";
-import { registrarDevolucao, listDevolucoes } from "@/services/emprestimo-service";
+import type { 
+  EmpresaInput, 
+  ProdutoInput, 
+  EmprestimoInput, 
+  DevolucaoInput 
+} from "@/services/cloud-service";
 import { importProdutos } from "@/services/produto-service";
 import type { ProdutoImportRow } from "@/features/produtos/lib/produto-import";
 
