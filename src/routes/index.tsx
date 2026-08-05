@@ -1,4 +1,5 @@
 import { createFileRoute } from "@tanstack/react-router";
+// Execute esta instrucao no projeto: Analise os anexos enviados.
 import {
   AlertTriangle,
   CircleDollarSign,

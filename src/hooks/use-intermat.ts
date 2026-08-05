@@ -2,6 +2,7 @@ import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { 
   listEmpresas, 
   createEmpresa, 
+  updateEmpresa,
   listProdutos, 
   createProduto, 
   listEmprestimos, 
@@ -110,6 +111,14 @@ export function useCreateEmpresa() {
   const invalidate = useInvalidateAll();
   return useMutation({
     mutationFn: async (input: EmpresaInput) => createEmpresa(input),
+    onSuccess: invalidate,
+  });
+}
+
+export function useUpdateEmpresa() {
+  const invalidate = useInvalidateAll();
+  return useMutation({
+    mutationFn: async ({ id, input }: { id: string; input: EmpresaInput }) => updateEmpresa(id, input),
     onSuccess: invalidate,
   });
 }

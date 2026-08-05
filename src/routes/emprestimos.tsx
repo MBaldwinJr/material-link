@@ -53,7 +53,7 @@ import {
 } from "@/hooks/use-intermat";
 import { useHydrated } from "@/hooks/use-hydrated";
 import { formatCurrency, formatDate } from "@/lib/format";
-import { saldoAbertoCentavos } from "@/services/emprestimo-service";
+const saldoAbertoCentavos = (loan: any) => (Number(loan.quantidade) - Number(loan.quantidadeDevolvida)) * Number(loan.valorUnitarioCentavos);
 
 export const Route = createFileRoute("/emprestimos")({
   head: () => ({

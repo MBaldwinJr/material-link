@@ -102,30 +102,72 @@ export async function listEmpresas(): Promise<Empresa[]> {
   return (data || []).map(mapEmpresa);
 }
 
-export async function createEmpresa(input: any): Promise<Empresa> {
+export async function getEmpresa(id: string): Promise<Empresa> {
   const { data, error } = await supabase
     .from("empresas")
-    .insert({
-      razao_social: input.razaoSocial,
-      nome_fantasia: input.nomeFantasia,
-      cnpj: input.cnpj,
-      inscricao_estadual: input.inscricaoEstadual,
-      telefone: input.telefone,
-      whatsapp: input.whatsapp,
-      email: input.email,
-      responsavel: input.responsavel,
-      cidade: input.cidade,
-      estado: input.estado,
-      status: input.status,
-      limite_centavos: input.limiteCentavos,
-      prazo_padrao_dias: input.prazoPadraoDias,
-      observacoes: input.observacoes,
-    })
+    .select("*")
+    .eq("id", id)
+    .single();
+  if (error) throw error;
+  return mapEmpresa(data);
+}
+
+export async function createEmpresa(input: any): Promise<Empresa> {
+  const payload = {
+    razao_social: input.razaoSocial,
+    nome_fantasia: input.nomeFantasia,
+    cnpj: input.cnpj,
+    inscricao_estadual: input.inscricaoEstadual,
+    telefone: input.telefone,
+    whatsapp: input.whatsapp,
+    email: input.email,
+    responsavel: input.responsavel,
+    cidade: input.cidade,
+    estado: input.estado,
+    status: input.status,
+    limite_centavos: input.limiteCentavos,
+    prazo_padrao_dias: input.prazoPadraoDias,
+    observacoes: input.observacoes,
+  };
+
+  const { data, error } = await supabase
+    .from("empresas")
+    .insert(payload)
     .select()
     .single();
   if (error) throw error;
   
   await logAuditoria("Cadastro de empresa", data.nome_fantasia, `CNPJ ${data.cnpj}`);
+  return mapEmpresa(data);
+}
+
+export async function updateEmpresa(id: string, input: any): Promise<Empresa> {
+  const payload = {
+    razao_social: input.razaoSocial,
+    nome_fantasia: input.nomeFantasia,
+    cnpj: input.cnpj,
+    inscricao_estadual: input.inscricaoEstadual,
+    telefone: input.telefone,
+    whatsapp: input.whatsapp,
+    email: input.email,
+    responsavel: input.responsavel,
+    cidade: input.cidade,
+    estado: input.estado,
+    status: input.status,
+    limite_centavos: input.limiteCentavos,
+    prazo_padrao_dias: input.prazoPadraoDias,
+    observacoes: input.observacoes,
+  };
+
+  const { data, error } = await supabase
+    .from("empresas")
+    .update(payload)
+    .eq("id", id)
+    .select()
+    .single();
+  if (error) throw error;
+
+  await logAuditoria("Edição de empresa", data.nome_fantasia, `ID ${id}`);
   return mapEmpresa(data);
 }
 
