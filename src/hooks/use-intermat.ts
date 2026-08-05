@@ -1,28 +1,20 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 
-import { createEmpresa, listEmpresas, type EmpresaInput } from "@/services/empresa-service";
-import {
-  createProduto,
-  importProdutos,
-  listProdutos,
-  type ProdutoInput,
-} from "@/services/produto-service";
-import type { ProdutoImportRow } from "@/features/produtos/lib/produto-import";
-import {
+import { 
+  listEmpresas, 
+  createEmpresa, 
+  listProdutos, 
+  createProduto, 
+  listEmprestimos, 
   createEmprestimo,
-  listDevolucoes,
-  listEmprestimos,
-  registrarDevolucao,
-  type DevolucaoInput,
-  type EmprestimoInput,
-} from "@/services/emprestimo-service";
-import {
-  getDashboardMetrics,
-  getRankingEmpresas,
-  getRankingProdutos,
-  getSerieMensal,
-} from "@/services/dashboard-service";
-import { getDatabase } from "@/services/mock-db";
+  getDashboardData
+} from "@/services/cloud-service";
+import type { EmpresaInput } from "@/services/empresa-service";
+import type { ProdutoInput } from "@/services/produto-service";
+import type { EmprestimoInput, DevolucaoInput } from "@/services/emprestimo-service";
+import { registrarDevolucao, listDevolucoes } from "@/services/emprestimo-service"; // Still need these or migrate them too
+import { importProdutos } from "@/services/produto-service";
+import type { ProdutoImportRow } from "@/features/produtos/lib/produto-import";
 
 const KEYS = {
   empresas: ["empresas"] as const,
@@ -52,13 +44,13 @@ export function useDevolucoes() {
 export function useOperacional() {
   return useQuery({
     queryKey: KEYS.operacional,
-    queryFn: () => {
-      const db = getDatabase();
+    queryFn: async () => {
+      const { data: audit } = await (await import("@/integrations/supabase/client")).supabase.from("auditoria").select("*").order("data", { ascending: false });
       return {
-        motoristas: db.motoristas,
-        veiculos: db.veiculos,
-        movimentacoes: db.movimentacoes,
-        auditoria: db.auditoria,
+        motoristas: [], // TODO: Migrate
+        veiculos: [], // TODO: Migrate
+        movimentacoes: [], // TODO: Migrate
+        auditoria: audit || [],
       };
     },
   });
@@ -67,12 +59,7 @@ export function useOperacional() {
 export function useDashboard() {
   return useQuery({
     queryKey: KEYS.dashboard,
-    queryFn: () => ({
-      metrics: getDashboardMetrics(),
-      serie: getSerieMensal(),
-      rankingEmpresas: getRankingEmpresas(),
-      rankingProdutos: getRankingProdutos(),
-    }),
+    queryFn: () => getDashboardData(),
   });
 }
 
