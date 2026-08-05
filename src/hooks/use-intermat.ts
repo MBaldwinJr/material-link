@@ -12,8 +12,8 @@ import {
 import type { EmpresaInput } from "@/services/empresa-service";
 import type { ProdutoInput } from "@/services/produto-service";
 import type { EmprestimoInput, DevolucaoInput } from "@/services/emprestimo-service";
-import { registrarDevolucao, listDevolucoes, importProdutos } from "@/services/emprestimo-service"; 
-// import { importProdutos } from "@/services/produto-service"; // Move to cloud service if possible
+import { registrarDevolucao, listDevolucoes } from "@/services/emprestimo-service";
+import { importProdutos } from "@/services/produto-service";
 import type { ProdutoImportRow } from "@/features/produtos/lib/produto-import";
 
 const KEYS = {
