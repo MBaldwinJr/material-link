@@ -9,7 +9,8 @@ import {
   createEmprestimo,
   getDashboardData,
   registrarDevolucao,
-  listDevolucoes
+  listDevolucoes,
+  importProdutos
 } from "@/services/cloud-service";
 import type { 
   EmpresaInput, 
@@ -17,7 +18,7 @@ import type {
   EmprestimoInput, 
   DevolucaoInput 
 } from "@/services/cloud-service";
-import { importProdutos } from "@/services/produto-service";
+// import { importProdutos } from "@/services/produto-service";
 import type { ProdutoImportRow } from "@/features/produtos/lib/produto-import";
 
 const KEYS = {

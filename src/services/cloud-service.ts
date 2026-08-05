@@ -304,6 +304,63 @@ async function logAuditoria(acao: string, entidade: string, detalhes: string) {
   });
 }
 
+export async function importProdutos(
+  rows: readonly any[],
+  origem: string,
+): Promise<{ criados: number; atualizados: number }> {
+  let criados = 0;
+  let atualizados = 0;
+
+  for (const row of rows) {
+    const { data: existing } = await supabase
+      .from("produtos")
+      .select("id")
+      .eq("codigo", row.codigo)
+      .maybeSingle();
+
+    if (existing) {
+      await supabase
+        .from("produtos")
+        .update({
+          codigo_barras: row.codigoBarras,
+          descricao: row.descricao,
+          marca: row.marca,
+          categoria: row.categoria,
+          fornecedor: row.fornecedor,
+          unidade: row.unidade,
+          custo_centavos: row.custoCentavos,
+          venda_centavos: row.vendaCentavos,
+          estoque_atual: row.estoqueAtual,
+          estoque_minimo: row.estoqueMinimo,
+          localizacao: row.localizacao,
+        })
+        .eq("id", existing.id);
+      atualizados++;
+    } else {
+      await supabase
+        .from("produtos")
+        .insert({
+          codigo: row.codigo,
+          codigo_barras: row.codigoBarras,
+          descricao: row.descricao,
+          marca: row.marca,
+          categoria: row.categoria,
+          fornecedor: row.fornecedor,
+          unidade: row.unidade,
+          custo_centavos: row.custoCentavos,
+          venda_centavos: row.vendaCentavos,
+          estoque_atual: row.estoqueAtual,
+          estoque_minimo: row.estoqueMinimo,
+          localizacao: row.localizacao,
+        });
+      criados++;
+    }
+  }
+
+  await logAuditoria("Importação de produtos", origem, `${criados} criados · ${atualizados} atualizados`);
+  return { criados, atualizados };
+}
+
 export async function getDashboardData() {
   const { data: loans } = await supabase.from("emprestimos").select("*");
   const { data: companies } = await supabase.from("empresas").select("id, nome_fantasia");
