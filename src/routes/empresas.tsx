@@ -4,7 +4,7 @@ import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
 import { useState } from "react";
 import { toast } from "sonner";
-import { Plus } from "lucide-react";
+import { Edit, Plus } from "lucide-react";
 
 import { AppShell } from "@/components/layout/app-shell";
 import { EmpresaStatusBadge } from "@/components/layout/status-badges";
@@ -44,7 +44,7 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
-import { useCreateEmpresa, useEmpresas } from "@/hooks/use-intermat";
+import { useCreateEmpresa, useEmpresas, useUpdateEmpresa } from "@/hooks/use-intermat";
 import { useHydrated } from "@/hooks/use-hydrated";
 import { formatCurrency } from "@/lib/format";
 
@@ -89,7 +89,9 @@ function EmpresasPage() {
   const hydrated = useHydrated();
   const { data: empresas } = useEmpresas();
   const createMutation = useCreateEmpresa();
+  const updateMutation = useUpdateEmpresa();
   const [open, setOpen] = useState(false);
+  const [editingId, setEditingId] = useState<string | null>(null);
 
   const form = useForm<FormValues>({
     resolver: zodResolver(schema),
@@ -113,40 +115,83 @@ function EmpresasPage() {
 
   const onSubmit = form.handleSubmit((values) => {
     const parsed = schema.parse(values);
-    createMutation.mutate(
-      {
-        razaoSocial: parsed.razaoSocial,
-        nomeFantasia: parsed.nomeFantasia,
-        cnpj: parsed.cnpj,
-        inscricaoEstadual: parsed.inscricaoEstadual,
-        telefone: parsed.telefone,
-        whatsapp: parsed.whatsapp,
-        email: parsed.email,
-        responsavel: parsed.responsavel,
-        cidade: parsed.cidade,
-        estado: parsed.estado.toUpperCase(),
-        status: parsed.status,
-        limiteCentavos: Math.round(parsed.limiteReais * 100),
-        prazoPadraoDias: parsed.prazoPadraoDias,
-        observacoes: parsed.observacoes,
-      },
-      {
+    const payload = {
+      razaoSocial: parsed.razaoSocial,
+      nomeFantasia: parsed.nomeFantasia,
+      cnpj: parsed.cnpj,
+      inscricaoEstadual: parsed.inscricaoEstadual,
+      telefone: parsed.telefone,
+      whatsapp: parsed.whatsapp,
+      email: parsed.email,
+      responsavel: parsed.responsavel,
+      cidade: parsed.cidade,
+      estado: parsed.estado.toUpperCase(),
+      status: parsed.status,
+      limiteCentavos: Math.round(parsed.limiteReais * 100),
+      prazoPadraoDias: parsed.prazoPadraoDias,
+      observacoes: parsed.observacoes,
+    };
+
+    if (editingId) {
+      updateMutation.mutate(
+        { id: editingId, input: payload },
+        {
+          onSuccess: () => {
+            toast.success("Empresa atualizada com sucesso.");
+            form.reset();
+            setOpen(false);
+            setEditingId(null);
+          },
+          onError: () => toast.error("Não foi possível atualizar a empresa."),
+        },
+      );
+    } else {
+      createMutation.mutate(payload, {
         onSuccess: () => {
           toast.success("Empresa cadastrada com sucesso.");
           form.reset();
           setOpen(false);
         },
         onError: () => toast.error("Não foi possível salvar a empresa."),
-      },
-    );
+      });
+    }
   });
+
+  const handleEdit = (empresa: any) => {
+    setEditingId(empresa.id);
+    form.reset({
+      razaoSocial: empresa.razaoSocial,
+      nomeFantasia: empresa.nomeFantasia,
+      cnpj: empresa.cnpj,
+      inscricaoEstadual: empresa.inscricaoEstadual || "",
+      telefone: empresa.telefone || "",
+      whatsapp: empresa.whatsapp || "",
+      email: empresa.email,
+      responsavel: empresa.responsavel,
+      cidade: empresa.cidade,
+      estado: empresa.estado,
+      status: empresa.status,
+      limiteReais: empresa.limiteCentavos / 100,
+      prazoPadraoDias: empresa.prazoPadraoDias,
+      observacoes: empresa.observacoes || "",
+    });
+    setOpen(true);
+  };
+
+  const handleOpenChange = (isOpen: boolean) => {
+    setOpen(isOpen);
+    if (!isOpen) {
+      setEditingId(null);
+      form.reset();
+    }
+  };
 
   return (
     <AppShell
       title="Empresas parceiras"
       description="Cadastro completo, limites financeiros e status de crédito dos parceiros."
       actions={
-        <Dialog open={open} onOpenChange={setOpen}>
+        <Dialog open={open} onOpenChange={handleOpenChange}>
           <DialogTrigger asChild>
             <Button>
               <Plus className="size-4" /> Nova empresa
@@ -154,7 +199,7 @@ function EmpresasPage() {
           </DialogTrigger>
           <DialogContent className="max-h-[85vh] overflow-y-auto sm:max-w-2xl">
             <DialogHeader>
-              <DialogTitle>Cadastrar empresa</DialogTitle>
+              <DialogTitle>{editingId ? "Editar empresa" : "Cadastrar empresa"}</DialogTitle>
             </DialogHeader>
             <Form {...form}>
               <form onSubmit={onSubmit} className="grid gap-4 sm:grid-cols-2">
@@ -220,8 +265,8 @@ function EmpresasPage() {
                   )}
                 />
                 <DialogFooter className="sm:col-span-2">
-                  <Button type="submit" disabled={createMutation.isPending}>
-                    {createMutation.isPending ? "Salvando..." : "Salvar empresa"}
+                  <Button type="submit" disabled={createMutation.isPending || updateMutation.isPending}>
+                    {createMutation.isPending || updateMutation.isPending ? "Salvando..." : editingId ? "Atualizar empresa" : "Salvar empresa"}
                   </Button>
                 </DialogFooter>
               </form>
@@ -243,13 +288,14 @@ function EmpresasPage() {
             <Table>
               <TableHeader>
                 <TableRow>
-                  <TableHead>Empresa</TableHead>
+                   <TableHead>Empresa</TableHead>
                   <TableHead>CNPJ</TableHead>
                   <TableHead>Responsável</TableHead>
                   <TableHead>Cidade / UF</TableHead>
                   <TableHead className="text-right">Limite</TableHead>
                   <TableHead className="text-right">Prazo</TableHead>
                   <TableHead>Status</TableHead>
+                  <TableHead className="w-[50px]"></TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
@@ -270,8 +316,13 @@ function EmpresasPage() {
                     <TableCell className="text-right text-sm">
                       {empresa.prazoPadraoDias} dias
                     </TableCell>
-                    <TableCell>
+                     <TableCell>
                       <EmpresaStatusBadge status={empresa.status} />
+                    </TableCell>
+                    <TableCell>
+                      <Button variant="ghost" size="icon" onClick={() => handleEdit(empresa)}>
+                        <Edit className="size-4" />
+                      </Button>
                     </TableCell>
                   </TableRow>
                 ))}
