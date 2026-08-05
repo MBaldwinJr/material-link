@@ -1,5 +1,4 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-
 import { 
   listEmpresas, 
   createEmpresa, 
@@ -18,7 +17,6 @@ import type {
   EmprestimoInput, 
   DevolucaoInput 
 } from "@/services/cloud-service";
-// import { importProdutos } from "@/services/produto-service";
 import type { ProdutoImportRow } from "@/features/produtos/lib/produto-import";
 
 const KEYS = {
