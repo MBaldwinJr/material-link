@@ -53,38 +53,38 @@ export function useOperacional() {
         supabase.from("veiculos").select("*").order("placa"),
       ]);
 
-      return {
-        motoristas: (driversRes.data || []).map(row => ({
-          id: row.id,
-          nome: row.nome,
-          cnh: row.cnh,
-          telefone: row.telefone
-        })),
-        veiculos: (vehiclesRes.data || []).map(row => ({
-          id: row.id,
-          placa: row.placa,
-          modelo: row.modelo,
-          capacidade: row.capacidade
-        })),
-        movimentacoes: (moveRes.data || []).map(row => ({
-          id: row.id,
-          produtoId: row.produto_id,
-          empresaId: row.empresa_id,
-          tipo: row.tipo as any,
-          quantidade: Number(row.quantidade),
-          usuario: row.usuario,
-          data: row.data,
-          origem: row.origem
-        })),
-        auditoria: (auditRes.data || []).map(row => ({
-          id: row.id,
-          usuario: row.usuario,
-          acao: row.acao,
-          entidade: row.entidade,
-          data: row.data,
-          detalhes: typeof row.detalhes === 'string' ? row.detalhes : JSON.stringify(row.detalhes)
-        })),
-      };
+      const motoristas = (driversRes.data as any[] || []).map(row => ({
+        id: row.id,
+        nome: row.nome,
+        cnh: row.cnh,
+        telefone: row.telefone
+      }));
+      const veiculos = (vehiclesRes.data as any[] || []).map(row => ({
+        id: row.id,
+        placa: row.placa,
+        modelo: row.modelo,
+        capacidade: row.capacidade
+      }));
+      const movimentacoes = (moveRes.data as any[] || []).map(row => ({
+        id: row.id,
+        produtoId: row.produto_id,
+        empresaId: row.empresa_id,
+        tipo: row.tipo as any,
+        quantidade: Number(row.quantidade),
+        usuario: row.usuario,
+        data: row.data,
+        origem: row.origem
+      }));
+      const auditoria = (auditRes.data as any[] || []).map(row => ({
+        id: row.id,
+        usuario: row.usuario,
+        acao: row.acao,
+        entidade: row.entidade,
+        data: row.data,
+        detalhes: typeof row.detalhes === 'string' ? row.detalhes : JSON.stringify(row.detalhes)
+      }));
+
+      return { motoristas, veiculos, movimentacoes, auditoria };
     },
   });
 }
