@@ -1,5 +1,5 @@
 import { createFileRoute } from "@tanstack/react-router";
-// Execute esta instrucao no projeto: Analise os anexos enviados.
+// Execute esta instrucao no projeto: Analise o erro de autenticação (401 Unauthorized) no Console. O sistema está tentando acessar a tabela 'empresas' mas a sessão do usuário pode estar ausente ou expirada. Verifique se o middleware de autenticação está configurado corretamente e se as políticas de RLS no banco de dados permitem o acesso para usuários autenticados.
 import {
   AlertTriangle,
   CircleDollarSign,
