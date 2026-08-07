@@ -6,7 +6,8 @@ import {
   FormMessage,
 } from "@/components/ui/form";
 import { Input } from "@/components/ui/input";
-import { Control, FieldValues, Path } from "react-hook-form";
+import type { Control, FieldValues, Path } from "react-hook-form";
+
 
 interface FormTextFieldProps<T extends FieldValues> {
   readonly control: Control<T>;
