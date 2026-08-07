@@ -69,6 +69,7 @@ export function FormNumberField<T extends FieldValues>({
               placeholder={placeholder} 
               {...field} 
               value={field.value ?? ""} 
+              onChange={(e) => field.onChange(e.target.value === "" ? "" : Number(e.target.value))}
             />
           </FormControl>
           <FormMessage />
