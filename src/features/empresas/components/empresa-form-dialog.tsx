@@ -83,9 +83,20 @@ export function EmpresaFormDialog({ open, onOpenChange, empresa }: EmpresaFormDi
 
   const onSubmit = form.handleSubmit((values) => {
     const payload = {
-      ...values,
+      razaoSocial: values.razaoSocial,
+      nomeFantasia: values.nomeFantasia,
+      cnpj: values.cnpj,
+      inscricaoEstadual: values.inscricaoEstadual,
+      telefone: values.telefone,
+      whatsapp: values.whatsapp,
+      email: values.email,
+      responsavel: values.responsavel,
+      cidade: values.cidade,
       estado: values.estado.toUpperCase(),
+      status: values.status,
       limiteCentavos: Math.round(values.limiteReais * 100),
+      prazoPadraoDias: values.prazoPadraoDias,
+      observacoes: values.observacoes,
     };
 
     if (empresa?.id) {
@@ -118,18 +129,18 @@ export function EmpresaFormDialog({ open, onOpenChange, empresa }: EmpresaFormDi
         </DialogHeader>
         <Form {...form}>
           <form onSubmit={onSubmit} className="grid gap-4 sm:grid-cols-2">
-            <FormTextField control={form.control} name="razaoSocial" label="Razão social" />
-            <FormTextField control={form.control} name="nomeFantasia" label="Nome fantasia" />
-            <FormTextField control={form.control} name="cnpj" label="CNPJ" />
-            <FormTextField control={form.control} name="inscricaoEstadual" label="Inscrição estadual" />
-            <FormTextField control={form.control} name="telefone" label="Telefone" />
-            <FormTextField control={form.control} name="whatsapp" label="WhatsApp" />
-            <FormTextField control={form.control} name="email" label="E-mail" type="email" />
-            <FormTextField control={form.control} name="responsavel" label="Responsável" />
-            <FormTextField control={form.control} name="cidade" label="Cidade" />
-            <FormTextField control={form.control} name="estado" label="UF" />
-            <FormTextField control={form.control} name="limiteReais" label="Limite financeiro (R$)" type="number" />
-            <FormTextField control={form.control} name="prazoPadraoDias" label="Prazo padrão (dias)" type="number" />
+            <FormTextField<FormValues> control={form.control} name="razaoSocial" label="Razão social" />
+            <FormTextField<FormValues> control={form.control} name="nomeFantasia" label="Nome fantasia" />
+            <FormTextField<FormValues> control={form.control} name="cnpj" label="CNPJ" />
+            <FormTextField<FormValues> control={form.control} name="inscricaoEstadual" label="Inscrição estadual" />
+            <FormTextField<FormValues> control={form.control} name="telefone" label="Telefone" />
+            <FormTextField<FormValues> control={form.control} name="whatsapp" label="WhatsApp" />
+            <FormTextField<FormValues> control={form.control} name="email" label="E-mail" type="email" />
+            <FormTextField<FormValues> control={form.control} name="responsavel" label="Responsável" />
+            <FormTextField<FormValues> control={form.control} name="cidade" label="Cidade" />
+            <FormTextField<FormValues> control={form.control} name="estado" label="UF" />
+            <FormTextField<FormValues> control={form.control} name="limiteReais" label="Limite financeiro (R$)" type="number" />
+            <FormTextField<FormValues> control={form.control} name="prazoPadraoDias" label="Prazo padrão (dias)" type="number" />
             
             <FormField
               control={form.control}
