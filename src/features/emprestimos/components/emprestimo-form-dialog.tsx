@@ -27,10 +27,11 @@ const schema = z.object({
   data: z.string().min(1, "Informe a data"),
   prazoDevolucao: z.string().min(1, "Informe o prazo"),
   responsavel: z.string().trim().min(2, "Informe o responsável").max(120),
-  motorista: z.string().trim().max(120).default(""),
-  veiculo: z.string().trim().max(120).default(""),
-  observacoes: z.string().trim().max(500).default(""),
+  motorista: z.string().trim().max(120),
+  veiculo: z.string().trim().max(120),
+  observacoes: z.string().trim().max(500),
 });
+
 
 type FormValues = z.infer<typeof schema>;
 
