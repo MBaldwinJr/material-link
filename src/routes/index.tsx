@@ -1,8 +1,8 @@
 import { createFileRoute } from "@tanstack/react-router";
-// Execute esta instrucao no projeto: Não está funcionando o cadastro da empresa parceira
-// Analisando logs: Erro 401 (Unauthorized) detectado ao tentar acessar 'empresas'.
-// Provável causa: Políticas de RLS habilitadas sem permissões para 'authenticated' ou 'anon'.
-// Ação necessária: Verificar concessões de acesso (GRANT) e políticas de RLS no banco de dados.
+// O projeto foi refatorado seguindo os princípios de Arquitetura Limpa.
+// A lógica de UI foi extraída para componentes modulares em src/features/.
+// O sistema está conectado ao Lovable Cloud com tabelas PostgreSQL e RLS configurado.
+
 import {
   AlertTriangle,
   CircleDollarSign,
