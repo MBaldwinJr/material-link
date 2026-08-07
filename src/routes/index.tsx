@@ -1,5 +1,5 @@
 import { createFileRoute } from "@tanstack/react-router";
-// Execute esta instrucao no projeto: ainda continua erro ao cadastrar empresa parceira
+// Execute esta instrucao no projeto: Não está funcionando o cadastro da empresa parceira
 // Analisando logs: Erro 401 (Unauthorized) detectado ao tentar acessar 'empresas'.
 // Provável causa: Políticas de RLS habilitadas sem permissões para 'authenticated' ou 'anon'.
 // Ação necessária: Verificar concessões de acesso (GRANT) e políticas de RLS no banco de dados.
