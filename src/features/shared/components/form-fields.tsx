@@ -31,7 +31,7 @@ export function FormTextField<T extends FieldValues>({
         <FormItem>
           <FormLabel>{label}</FormLabel>
           <FormControl>
-            <Input type={type} placeholder={placeholder} {...field} value={String(field.value ?? "")} />
+            <Input type={type} placeholder={placeholder} {...field} value={field.value ?? ""} />
           </FormControl>
           <FormMessage />
         </FormItem>
