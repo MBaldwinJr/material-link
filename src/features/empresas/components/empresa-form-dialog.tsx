@@ -22,9 +22,9 @@ const schema = z.object({
   razaoSocial: z.string().trim().min(3, "Informe a razão social").max(120),
   nomeFantasia: z.string().trim().min(2, "Informe o nome fantasia").max(120),
   cnpj: z.string().trim().min(14, "CNPJ inválido").max(18),
-  inscricaoEstadual: z.string().trim().max(30).default(""),
-  telefone: z.string().trim().max(20).default(""),
-  whatsapp: z.string().trim().max(20).default(""),
+  inscricaoEstadual: z.string().trim().max(30),
+  telefone: z.string().trim().max(20),
+  whatsapp: z.string().trim().max(20),
   email: z.string().trim().email("E-mail inválido").max(255),
   responsavel: z.string().trim().min(2, "Informe o responsável").max(120),
   cidade: z.string().trim().min(2, "Informe a cidade").max(80),
@@ -32,8 +32,9 @@ const schema = z.object({
   status: z.enum(["ativa", "suspensa", "bloqueada"]),
   limiteReais: z.coerce.number().min(0, "Valor inválido"),
   prazoPadraoDias: z.coerce.number().int().min(1, "Mínimo 1 dia").max(365),
-  observacoes: z.string().trim().max(500).default(""),
+  observacoes: z.string().trim().max(500),
 });
+
 
 type FormValues = z.infer<typeof schema>;
 
