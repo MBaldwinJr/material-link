@@ -114,8 +114,9 @@ REVOKE INSERT, UPDATE, DELETE ON public.emprestimos, public.devolucoes,
   public.movimentacoes_estoque, public.auditoria FROM anon, authenticated;
 -- Existing rows are not rewritten. NOT VALID guards new writes without
 -- requiring historical data repair during deployment.
-ALTER TABLE public.produtos
-  ADD CONSTRAINT intermat_estoque_nao_negativo CHECK (estoque_atual >= 0) NOT VALID;
+-- Historical inventory contains negative balances. Do not add a CHECK that
+-- would block unrelated catalog updates until those balances are reconciled.
+-- The atomic loan RPC itself prevents new lending below available stock.
 ALTER TABLE public.emprestimos
   ADD CONSTRAINT intermat_devolvido_no_intervalo
   CHECK (quantidade_devolvida >= 0 AND quantidade_devolvida <= quantidade) NOT VALID;
