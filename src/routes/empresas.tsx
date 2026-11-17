@@ -2,6 +2,7 @@ import { createFileRoute } from "@tanstack/react-router";
 import { useState } from "react";
 import { Plus } from "lucide-react";
 import { AppShell } from "@/components/layout/app-shell";
+import { RoleAccess } from "@/components/auth/role-access";
 import { EmptyState, LoadingGrid } from "@/components/layout/states";
 import { Button } from "@/components/ui/button";
 import { useEmpresas } from "@/hooks/use-intermat";
@@ -51,9 +52,11 @@ function EmpresasPage() {
       title="Empresas parceiras"
       description="Cadastro completo, limites financeiros e status de crédito dos parceiros."
       actions={
-        <Button onClick={() => setOpen(true)}>
-          <Plus className="size-4" /> Nova empresa
-        </Button>
+        <RoleAccess roles={["admin", "gestor"]}>
+          <Button onClick={() => setOpen(true)}>
+            <Plus className="size-4" /> Nova empresa
+          </Button>
+        </RoleAccess>
       }
     >
       <EmpresaFormDialog
