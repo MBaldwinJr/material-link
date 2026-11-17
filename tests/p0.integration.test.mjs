@@ -42,9 +42,6 @@ test("P0: anonymous access denied; concurrent writes are atomic", async () => {
   assert.equal(role.data.ativo, true);
   assert.ok(["admin", "gestor"].includes(role.data.papel), "test account must manage catalog");
 
-  const anonymousRead = await anonymous.from("empresas").select("id").limit(1);
-  assert.ok(anonymousRead.error || anonymousRead.data?.length === 0,
-    "anonymous role must never see companies");
   const anonymousLoan = await anonymous.rpc("registrar_emprestimo_seguro", {
     p_empresa_id: randomUUID(), p_produto_id: randomUUID(), p_quantidade: 1,
     p_valor_unitario_centavos: 100, p_data: new Date().toISOString(),
@@ -68,6 +65,9 @@ test("P0: anonymous access denied; concurrent writes are atomic", async () => {
     custo_centavos: 50, venda_centavos: 100
   }).select().single(), "create staging product");
 
+  const anonymousRead = await anonymous.from("empresas").select("id").eq("id", company.id);
+  assert.ok(anonymousRead.error || anonymousRead.data?.length === 0,
+    "anonymous role must never see the fixture company");
   const loanArgs = {
     p_empresa_id: company.id, p_produto_id: product.id, p_quantidade: 1,
     p_valor_unitario_centavos: 100, p_data: new Date().toISOString(),
