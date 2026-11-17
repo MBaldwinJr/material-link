@@ -23,7 +23,7 @@ BEGIN
     RAISE EXCEPTION 'Invalid administrator email' USING ERRCODE = '22023';
   END IF;
 
-  SELECT count(*), max(id) INTO matched, target_id
+  SELECT count(*) INTO matched
   FROM auth.users
   WHERE lower(email) = target_email AND email_confirmed_at IS NOT NULL;
 
@@ -31,6 +31,10 @@ BEGIN
     RAISE EXCEPTION 'No exactly matching confirmed Auth user for the requested administrator'
       USING ERRCODE = '22023';
   END IF;
+
+  SELECT id INTO STRICT target_id
+  FROM auth.users
+  WHERE lower(email) = target_email AND email_confirmed_at IS NOT NULL;
 
   IF EXISTS (
     SELECT 1 FROM public.inter_mat_operadores
