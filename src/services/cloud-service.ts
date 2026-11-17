@@ -167,13 +167,29 @@ export async function updateEmpresa(id: string, input: any): Promise<Empresa> {
   return mapEmpresa(data);
 }
 
+// PostgREST imposes a server-side row limit (commonly 1,000).
+// Fetch every page with a stable tie-breaker so imported ERP catalogs
+// larger than the API limit remain searchable for material loans.
 export async function listProdutos(): Promise<Produto[]> {
-  const { data, error } = await supabase
-    .from("produtos")
-    .select("*")
-    .order("descricao");
-  if (error) throw error;
-  return (data || []).map(mapProduto);
+  const batchSize = 500;
+  const produtos: Produto[] = [];
+
+  for (let offset = 0; ; offset += batchSize) {
+    const { data, error } = await supabase
+      .from("produtos")
+      .select("*")
+      .order("descricao", { ascending: true })
+      .order("id", { ascending: true })
+      .range(offset, offset + batchSize - 1);
+
+    if (error) throw error;
+    const batch = data ?? [];
+    produtos.push(...batch.map(mapProduto));
+
+    if (batch.length < batchSize) break;
+  }
+
+  return produtos;
 }
 
 export async function createProduto(input: any): Promise<Produto> {
