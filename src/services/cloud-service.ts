@@ -9,7 +9,8 @@ import type {
   Motorista,
   Veiculo,
   RegistroAuditoria,
-  DevolucaoTipo
+  DevolucaoTipo,
+  EmprestimoStatus
 } from "@/types/domain";
 
 export interface EmpresaInput extends Omit<Empresa, "id" | "criadoEm"> {}
@@ -75,6 +76,15 @@ function mapProduto(row: any): Produto {
 }
 
 function mapEmprestimo(row: any): Emprestimo {
+  const pendente = Number(row.quantidade) - Number(row.quantidade_devolvida);
+  const devolvido = Number(row.quantidade_devolvida);
+  // Derive visible status from quantities and deadline. Historic rows may
+  // retain an obsolete DB status, but must not be reported as outstanding.
+  const status: EmprestimoStatus =
+    pendente <= 0 ? "devolvido" :
+    new Date(row.prazo_devolucao).getTime() < Date.now() ? "atrasado" :
+    devolvido > 0 ? "parcial" : "aberto";
+
   return {
     id: row.id,
     numero: row.numero,
@@ -89,7 +99,7 @@ function mapEmprestimo(row: any): Emprestimo {
     motorista: row.motorista,
     veiculo: row.veiculo,
     observacoes: row.observacoes,
-    status: row.status as any,
+    status,
   };
 }
 
