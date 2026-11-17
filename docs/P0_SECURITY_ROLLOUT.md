@@ -100,3 +100,14 @@ Não usar mensagens, agentes, geração de projeto, deploy ou build pelo Lovable
 - Revisar os 28 saldos negativos e o empréstimo marcado como aberto apesar de totalmente devolvido, sem sobrescrever o histórico.
 - Não aplicar migrations ao banco original sem disponibilidade de conta administradora e caminho de restauração.
 - Não usar créditos do Lovable para concluir a fase P0.
+
+## Homologação automatizada sem créditos Lovable
+
+O workflow `.github/workflows/p0-quality.yml` cria um PostgreSQL 17 temporário no GitHub Actions, reproduz as migrations históricas e aplica a P0 de forma isolada. Executa:
+
+- `tests/p0.postgres.bootstrap.sql`: papéis/identidade mockados e esquema mínimo Auth, só para CI
+- `tests/p0.postgres.smoke.sql`: isolamento RLS, usuário não autorizado, perfil somente leitura, validações de saldo e devolução, movimentos e auditoria
+- `tests/p0.concurrent.py`: dois clientes PostgreSQL independentes em paralelo disputam a última unidade e a mesma devolução; espera uma transação bem-sucedida em cada disputa
+- `tests/p0.security.sql`: permissões de tabelas e funções, exposição de RPCs e invocador
+
+O PostgreSQL de CI é descartável; **não** acessa o Supabase/Lovable real. Além desse ambiente, a aplicação passa por `tsc`, lint direcionado e build em GitHub Actions. A validação específica no Supabase real e a conta inicial de Auth permanecem requisitos para implantação.
