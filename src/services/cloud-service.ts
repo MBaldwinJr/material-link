@@ -375,46 +375,113 @@ export async function importProdutos(
 }
 
 export async function getDashboardData() {
-  const { data: loans } = await supabase.from("emprestimos").select("*");
-  const { data: companies } = await supabase.from("empresas").select("id, nome_fantasia");
-  const { data: products } = await supabase.from("produtos").select("id, descricao");
-  const { data: returns } = await supabase.from("devolucoes").select("*");
+  // Reuse paginated history; a 1,000-row REST cap must not distort KPIs.
+  const [loans, returns] = await Promise.all([listEmprestimos(), listDevolucoes()]);
+  const loanById = new Map(loans.map((loan) => [loan.id, loan]));
+  const physicalReturns = returns.filter((event) => event.tipo === "total" || event.tipo === "parcial");
 
-  const l = (loans || []).map(mapEmprestimo);
-  const totalEmprestado = l.reduce((s, x) => s + (x.quantidade * x.valorUnitarioCentavos), 0);
-  const totalDevolvido = l.reduce((s, x) => s + (x.quantidadeDevolvida * x.valorUnitarioCentavos), 0);
-  const emAberto = l.filter(x => x.status !== 'devolvido');
-  const atrasados = l.filter(x => x.status === 'atrasado');
+  const totalEmprestado = loans.reduce(
+    (sum, loan) => sum + loan.quantidade * loan.valorUnitarioCentavos, 0
+  );
+  const totalDevolvido = physicalReturns.reduce((sum, event) => {
+    const loan = loanById.get(event.emprestimoId);
+    return sum + event.quantidade * (loan?.valorUnitarioCentavos ?? 0);
+  }, 0);
+  const emAberto = loans.filter((loan) => loan.quantidade > loan.quantidadeDevolvida);
+  const now = Date.now();
+  const atrasados = emAberto.filter((loan) =>
+    new Date(loan.prazoDevolucao).getTime() < now
+  );
 
-  // Simple series for chart
-  const serie = [
-    { mes: "Atual", emprestimos: Math.round(totalEmprestado/100), devolucoes: Math.round(totalDevolvido/100) }
-  ];
+  const durations = physicalReturns.flatMap((event) => {
+    const loan = loanById.get(event.emprestimoId);
+    if (!loan) return [];
+    const days = (new Date(event.data).getTime() - new Date(loan.data).getTime()) / 86_400_000;
+    return Number.isFinite(days) && days >= 0 ? [days] : [];
+  });
+  const tempoMedioDevolucaoDias = durations.length > 0
+    ? Math.round(durations.reduce((sum, days) => sum + days, 0) / durations.length)
+    : 0;
 
-  const rankingEmpresas = (companies || []).map(c => {
-    const valor = l.filter(loan => loan.empresaId === c.id && loan.status !== 'devolvido')
-                   .reduce((s, loan) => s + (loan.quantidade - loan.quantidadeDevolvida) * loan.valorUnitarioCentavos, 0);
-    return { nome: c.nome_fantasia, valor: Math.round(valor / 100) };
-  }).sort((a,b) => b.valor - a.valor).slice(0, 5);
+  // Real month-by-month loan and physical return values.
+  const monthly = new Map<string, { mes: string; emprestimos: number; devolucoes: number }>();
+  const addMonth = (date: string, column: "emprestimos" | "devolucoes", cents: number) => {
+    const time = new Date(date).getTime();
+    if (!Number.isFinite(time)) return;
+    const mes = new Date(time).toISOString().slice(0, 7);
+    const item = monthly.get(mes) ?? { mes, emprestimos: 0, devolucoes: 0 };
+    item[column] += cents / 100;
+    monthly.set(mes, item);
+  };
+  for (const loan of loans) {
+    addMonth(loan.data, "emprestimos", loan.quantidade * loan.valorUnitarioCentavos);
+  }
+  for (const event of physicalReturns) {
+    const loan = loanById.get(event.emprestimoId);
+    if (loan) addMonth(event.data, "devolucoes", event.quantidade * loan.valorUnitarioCentavos);
+  }
+  const serie = [...monthly.values()]
+    .sort((a, b) => a.mes.localeCompare(b.mes))
+    .slice(-12)
+    .map((item) => ({
+      ...item,
+      emprestimos: Math.round(item.emprestimos),
+      devolucoes: Math.round(item.devolucoes),
+    }));
 
-  const rankingProdutos = (products || []).map(p => {
-    const valor = l.filter(loan => loan.produtoId === p.id).reduce((s, x) => s + x.quantidade, 0);
-    return { nome: p.descricao, valor };
-  }).sort((a,b) => b.valor - a.valor).slice(0, 5);
+  // Rank only referenced identifiers; do not download thousands of catalog rows.
+  const debtByCompany = new Map<string, number>();
+  for (const loan of emAberto) {
+    debtByCompany.set(loan.empresaId, (debtByCompany.get(loan.empresaId) ?? 0)
+      + (loan.quantidade - loan.quantidadeDevolvida) * loan.valorUnitarioCentavos);
+  }
+  const topCompanies = [...debtByCompany.entries()].sort((a, b) => b[1] - a[1]).slice(0, 5);
+  const companyNames = new Map<string, string>();
+  if (topCompanies.length > 0) {
+    const { data, error } = await supabase.from("empresas")
+      .select("id, nome_fantasia").in("id", topCompanies.map(([id]) => id));
+    if (error) throw error;
+    for (const item of data ?? []) companyNames.set(item.id, item.nome_fantasia);
+  }
+  const rankingEmpresas = topCompanies.map(([id, cents]) => ({
+    nome: companyNames.get(id) ?? "Empresa",
+    valor: Math.round(cents / 100),
+  }));
+
+  const quantityByProduct = new Map<string, number>();
+  for (const loan of loans) {
+    quantityByProduct.set(loan.produtoId,
+      (quantityByProduct.get(loan.produtoId) ?? 0) + loan.quantidade);
+  }
+  const topProducts = [...quantityByProduct.entries()].sort((a, b) => b[1] - a[1]).slice(0, 5);
+  const productNames = new Map<string, string>();
+  if (topProducts.length > 0) {
+    const { data, error } = await supabase.from("produtos")
+      .select("id, descricao").in("id", topProducts.map(([id]) => id));
+    if (error) throw error;
+    for (const item of data ?? []) productNames.set(item.id, item.descricao);
+  }
+  const rankingProdutos = topProducts.map(([id, valor]) => ({
+    nome: productNames.get(id) ?? "Produto",
+    valor,
+  }));
 
   return {
     metrics: {
       totalEmprestadoCentavos: totalEmprestado,
       totalDevolvidoCentavos: totalDevolvido,
-      saldoAbertoCentavos: emAberto.reduce((s, x) => s + (x.quantidade - x.quantidadeDevolvida) * x.valorUnitarioCentavos, 0),
+      saldoAbertoCentavos: emAberto.reduce((sum, loan) =>
+        sum + (loan.quantidade - loan.quantidadeDevolvida) * loan.valorUnitarioCentavos, 0),
       emprestimosAtivos: emAberto.length,
-      empresasComPendencia: new Set(emAberto.map(x => x.empresaId)).size,
-      materiaisEmAtraso: atrasados.reduce((s, x) => s + (x.quantidade - x.quantidadeDevolvida), 0),
-      tempoMedioDevolucaoDias: 0,
-      capitalParadoCentavos: atrasados.reduce((s, x) => s + (x.quantidade - x.quantidadeDevolvida) * x.valorUnitarioCentavos, 0),
+      empresasComPendencia: new Set(emAberto.map((loan) => loan.empresaId)).size,
+      materiaisEmAtraso: atrasados.reduce((sum, loan) =>
+        sum + (loan.quantidade - loan.quantidadeDevolvida), 0),
+      tempoMedioDevolucaoDias,
+      capitalParadoCentavos: atrasados.reduce((sum, loan) =>
+        sum + (loan.quantidade - loan.quantidadeDevolvida) * loan.valorUnitarioCentavos, 0),
     },
     serie,
     rankingEmpresas,
-    rankingProdutos
+    rankingProdutos,
   };
 }
