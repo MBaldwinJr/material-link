@@ -44,6 +44,10 @@ jobs:
           psql -X -v ON_ERROR_STOP=1 -f supabase/migrations/20261117184300_p0_security_atomic_ops.sql
       - name: Verify RLS and transactional business cases
         run: psql -X -v ON_ERROR_STOP=1 -f tests/p0.postgres.smoke.sql
+      - name: Verify concurrent loan and return consistency
+        env:
+          INTERMAT_P0_CI_POSTGRES: YES_DISPOSABLE_CI_ONLY
+        run: python3 tests/p0.concurrent.py
   validate:
     runs-on: ubuntu-latest
     timeout-minutes: 15
