@@ -360,7 +360,31 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
-      [_ in never]: never
+      registrar_emprestimo_seguro: {
+        Args: {
+          p_empresa_id: string
+          p_produto_id: string
+          p_quantidade: number
+          p_valor_unitario_centavos: number
+          p_data: string
+          p_prazo_devolucao: string
+          p_responsavel: string
+          p_motorista: string
+          p_veiculo: string
+          p_observacoes: string
+        }
+        Returns: Database["public"]["Tables"]["emprestimos"]["Row"]
+      }
+      registrar_devolucao_segura: {
+        Args: {
+          p_emprestimo_id: string
+          p_tipo: string
+          p_quantidade: number
+          p_responsavel: string
+          p_observacoes: string
+        }
+        Returns: Database["public"]["Tables"]["devolucoes"]["Row"]
+      }
     }
     Enums: {
       [_ in never]: never
