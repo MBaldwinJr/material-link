@@ -226,12 +226,24 @@ export async function createProduto(input: any): Promise<Produto> {
 }
 
 export async function listEmprestimos(): Promise<Emprestimo[]> {
-  const { data, error } = await supabase
-    .from("emprestimos")
-    .select("*")
-    .order("data", { ascending: false });
-  if (error) throw error;
-  return (data || []).map(mapEmprestimo);
+  const batchSize = 500;
+  const emprestimos: Emprestimo[] = [];
+
+  for (let offset = 0; ; offset += batchSize) {
+    const { data, error } = await supabase
+      .from("emprestimos")
+      .select("*")
+      .order("data", { ascending: false })
+      .order("id", { ascending: false })
+      .range(offset, offset + batchSize - 1);
+
+    if (error) throw error;
+    const batch = data ?? [];
+    emprestimos.push(...batch.map(mapEmprestimo));
+    if (batch.length < batchSize) break;
+  }
+
+  return emprestimos;
 }
 
 // A single PostgreSQL RPC performs all writes atomically and authorizes the
@@ -276,20 +288,32 @@ export async function registrarDevolucao(input: DevolucaoInput): Promise<Devoluc
 }
 
 export async function listDevolucoes(): Promise<Devolucao[]> {
-  const { data, error } = await supabase
-    .from("devolucoes")
-    .select("*")
-    .order("data", { ascending: false });
-  if (error) throw error;
-  return (data || []).map(row => ({
-    id: row.id,
-    emprestimoId: row.emprestimo_id,
-    tipo: row.tipo as any,
-    quantidade: Number(row.quantidade),
-    data: row.data,
-    responsavel: row.responsavel || '',
-    observacoes: row.observacoes || ''
-  }));
+  const batchSize = 500;
+  const devolucoes: Devolucao[] = [];
+
+  for (let offset = 0; ; offset += batchSize) {
+    const { data, error } = await supabase
+      .from("devolucoes")
+      .select("*")
+      .order("data", { ascending: false })
+      .order("id", { ascending: false })
+      .range(offset, offset + batchSize - 1);
+
+    if (error) throw error;
+    const batch = data ?? [];
+    devolucoes.push(...batch.map((row) => ({
+      id: row.id,
+      emprestimoId: row.emprestimo_id,
+      tipo: row.tipo as DevolucaoTipo,
+      quantidade: Number(row.quantidade),
+      data: row.data,
+      responsavel: row.responsavel || "",
+      observacoes: row.observacoes || "",
+    })));
+    if (batch.length < batchSize) break;
+  }
+
+  return devolucoes;
 }
 
 export async function importProdutos(
