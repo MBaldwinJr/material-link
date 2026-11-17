@@ -4,6 +4,7 @@ import { EmpresaStatusBadge } from "@/components/layout/status-badges";
 import { formatCurrency } from "@/lib/format";
 import { DataTable } from "@/features/shared/components/data-table";
 import { Empresa } from "@/types/domain";
+import { useAccessRole } from "@/components/auth/role-access";
 
 interface EmpresaTableProps {
   readonly empresas: Empresa[];
@@ -11,6 +12,8 @@ interface EmpresaTableProps {
 }
 
 export function EmpresaTable({ empresas, onEdit }: EmpresaTableProps) {
+  const role = useAccessRole();
+  const canManage = role === "admin" || role === "gestor";
   return (
     <DataTable
       data={empresas}
@@ -54,11 +57,11 @@ export function EmpresaTable({ empresas, onEdit }: EmpresaTableProps) {
           header: "",
           key: "actions",
           className: "w-[50px]",
-          render: (empresa) => (
-            <Button variant="ghost" size="icon" onClick={() => onEdit(empresa)}>
+          render: (empresa) => canManage ? (
+            <Button variant="ghost" size="icon" onClick={() => onEdit(empresa)} aria-label="Editar empresa">
               <Edit className="size-4" />
             </Button>
-          ),
+          ) : null,
         },
       ]}
     />
