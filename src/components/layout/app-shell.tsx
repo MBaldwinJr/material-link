@@ -99,6 +99,8 @@ function AuthGate({ children }: { readonly children: ReactNode }) {
   const [password, setPassword] = useState("");
   const [error, setError] = useState<string | null>(null);
   const [submitting, setSubmitting] = useState(false);
+  const [authMode, setAuthMode] = useState<"signin" | "signup">("signin");
+  const [message, setMessage] = useState<string | null>(null);
 
   useEffect(() => {
     let live = true;
@@ -138,17 +140,32 @@ function AuthGate({ children }: { readonly children: ReactNode }) {
     return () => { live = false; };
   }, [session?.access_token, session?.user.id]);
 
-  async function signIn(event: FormEvent<HTMLFormElement>) {
+  async function submitCredentials(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
     setSubmitting(true);
     setError(null);
+    setMessage(null);
     try {
-      const { error: signInError } = await supabase.auth.signInWithPassword({ email, password });
-      if (signInError) setError("Não foi possível autenticar. Verifique seus dados.");
-      else {
-        setPassword("");
-        // Recreate route query observers with the authenticated session.
-        window.location.assign(window.location.pathname);
+      if (authMode === "signup") {
+        const { error: signUpError } = await supabase.auth.signUp({ email, password });
+        if (signUpError) {
+          setError("Não foi possível solicitar o cadastro. Verifique os dados ou contate o administrador.");
+        } else {
+          setPassword("");
+          setAuthMode("signin");
+          setMessage(
+            "Cadastro solicitado. Confirme seu e-mail, se necessário. " +
+            "O acesso ao sistema depende de autorização explícita do administrador.",
+          );
+        }
+      } else {
+        const { error: signInError } = await supabase.auth.signInWithPassword({ email, password });
+        if (signInError) setError("Não foi possível autenticar. Verifique seus dados.");
+        else {
+          setPassword("");
+          // Recreate route query observers with the authenticated session.
+          window.location.assign(window.location.pathname);
+        }
       }
     } catch {
       setError("Falha de conexão ao autenticar.");
@@ -179,7 +196,7 @@ function AuthGate({ children }: { readonly children: ReactNode }) {
           <p className="mt-1 text-sm text-muted-foreground">
             {session
               ? "Sua conta não possui autorização ativa. Solicite a liberação ao administrador."
-              : "Entre com uma conta autorizada do Supabase Auth."}
+              : "Entre com uma conta autorizada ou solicite o cadastro."}
           </p>
         </div>
         {session ? (
@@ -188,7 +205,7 @@ function AuthGate({ children }: { readonly children: ReactNode }) {
             Sair da conta
           </button>
         ) : (
-          <form onSubmit={(event) => { void signIn(event); }} className="space-y-3">
+          <form onSubmit={(event) => { void submitCredentials(event); }} className="space-y-3">
             <label className="block text-sm font-medium" htmlFor="intermat-email">E-mail</label>
             <input id="intermat-email" type="email" autoComplete="username"
               required value={email} onChange={(event) => setEmail(event.target.value)}
@@ -199,10 +216,22 @@ function AuthGate({ children }: { readonly children: ReactNode }) {
               className="w-full rounded-md border bg-background px-3 py-2" />
             <button type="submit" disabled={submitting}
               className="w-full rounded-md bg-primary px-4 py-2 font-medium text-primary-foreground disabled:opacity-50">
-              {submitting ? "Autenticando..." : "Entrar"}
+              {submitting ? "Processando..." : authMode === "signup" ? "Solicitar cadastro" : "Entrar"}
+            </button>
+            <button
+              type="button"
+              className="w-full text-sm underline underline-offset-4"
+              onClick={() => {
+                setAuthMode((current) => current === "signin" ? "signup" : "signin");
+                setError(null);
+                setMessage(null);
+              }}
+            >
+              {authMode === "signin" ? "Criar conta" : "Já tenho conta"}
             </button>
           </form>
         )}
+        {message && <p role="status" className="text-sm text-muted-foreground">{message}</p>}
         {error && <p role="alert" className="text-sm text-destructive">{error}</p>}
       </div>
     </div>;
