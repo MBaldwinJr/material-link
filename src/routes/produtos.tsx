@@ -1,6 +1,7 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { useMemo, useState } from "react";
 import { AppShell } from "@/components/layout/app-shell";
+import { RoleAccess } from "@/components/auth/role-access";
 import { EmptyState, LoadingGrid } from "@/components/layout/states";
 import { ProdutoImportDialog } from "@/features/produtos/components/produto-import-dialog";
 import { useProdutos } from "@/hooks/use-intermat";
@@ -54,7 +55,9 @@ function ProdutosPage() {
           value={search}
           onChange={(event) => setSearch(event.target.value)}
         />
-        <ProdutoImportDialog />
+        <RoleAccess roles={["admin", "gestor"]}>
+          <ProdutoImportDialog />
+        </RoleAccess>
       </div>
 
       {!hydrated || !produtos ? (
