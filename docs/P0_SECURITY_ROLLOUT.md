@@ -26,20 +26,21 @@ A migration NÃO habilita automaticamente nenhuma conta existente, deliberadamen
 - Confirmar que ao menos uma conta já existe no Supabase Auth e que o e-mail da conta está confirmado.
 - Testar migração + login + primeira associação de admin em clone de staging. Não executar testes de escrita em produção.
 - Planejar implantação coordenada de aplicação e banco para evitar incompatibilidade temporária: antes da migration o app novo chamará RPCs inexistentes; depois da migration o app antigo tentará gravar diretamente.
-- Após aplicar a migration em uma janela controlada, usando SQL Editor autenticado com acesso administrativo, **provisionar o administrador identificado**, nunca um UUID adivinhado ou todos os usuários automaticamente:
+- O frontend do PR inclui a opção **Criar conta**, mas ela **não concede acesso automaticamente**: é preciso confirmação de e-mail e aprovação explícita.
+- Após aplicar a migration em uma janela controlada, confirmar que a conta criada está validada no Supabase Auth e provisionar **somente o e-mail correto** usando uma conexão PostgreSQL administrativa confiável, fora do browser:
 
-```sql
--- Executar apenas APÓS confirmar o e-mail autorizado.
-INSERT INTO public.inter_mat_operadores (usuario_id, papel, ativo)
-SELECT id, 'admin', true
-FROM auth.users
-WHERE lower(email) = lower('ADMIN@EXEMPLO.COM')
-ON CONFLICT (usuario_id) DO UPDATE SET papel = EXCLUDED.papel, ativo = EXCLUDED.ativo;
--- Conferir que exatamente uma conta foi associada antes de liberar o acesso.
-SELECT u.email, m.papel, m.ativo
-FROM public.inter_mat_operadores m
-JOIN auth.users u ON u.id = m.usuario_id;
+```bash
+# Credenciais de conexão NÃO devem ser enviadas ao chat nem commitadas no GitHub.
+# Aplique previamente a migration em ambiente controlado.
+psql "$INTERMAT_DB_URL" -X -v ON_ERROR_STOP=1 \
+  -v ADMIN_EMAIL='administrador@empresa.com.br' \
+  -f scripts/p0-bootstrap-admin.sql
 ```
+
+O script confere que existe exatamente uma conta Auth com e-mail confirmado, rejeita e-mails inexistentes/não confirmados e impede elevação silenciosa de um segundo administrador. Sem uma conta confirmada, não executa alterações de privilégio.
+
+**Importante:** o Supabase original `sskjqromwluuzohnephz` não aparece nas contas Supabase ligadas diretamente ao ChatGPT. A vinculação ao Lovable Cloud não disponibiliza automaticamente credenciais de administração PostgreSQL. Não tente usar uma conta Supabase de outro projeto. Não aplicar ao banco original enquanto o acesso administrativo não for demonstrado.
+
 
 Após bootstrap, adicionar operadores adicionais com SQL administrativo, mantendo privilégios mínimos. Não permitir que o navegador escreva a tabela de operadores. Desabilitar cadastro público do Auth se o negócio usar apenas usuários convidados.
 
@@ -80,6 +81,8 @@ Para preservar a semântica atual, os eventos `troca`, `avaria` e `perda` **baix
 - `src/services/cloud-service.ts`
 - `src/integrations/supabase/types.ts`
 - `src/components/layout/app-shell.tsx`
+- `src/components/auth/role-access.tsx`
+- `scripts/p0-bootstrap-admin.sql`
 - `tests/p0.security.sql`
 - `tests/p0.integration.test.mjs`
 
@@ -111,3 +114,11 @@ O workflow `.github/workflows/p0-quality.yml` cria um PostgreSQL 17 temporário 
 - `tests/p0.security.sql`: permissões de tabelas e funções, exposição de RPCs e invocador
 
 O PostgreSQL de CI é descartável; **não** acessa o Supabase/Lovable real. Além desse ambiente, a aplicação passa por `tsc`, lint direcionado e build em GitHub Actions. A validação específica no Supabase real e a conta inicial de Auth permanecem requisitos para implantação.
+
+## Ajustes adicionais de uso inicial
+
+- Os 3.964 produtos já importados são lidos em páginas de 500 com ordenação estável, contornando o limite padrão de linhas da API. A tabela renderiza 50 linhas por página e permite busca por código, descrição, marca, fornecedor, categoria e localização.
+- Empréstimos e devoluções também têm busca paginada no serviço.
+- O dashboard deriva os saldos da quantidade efetivamente pendente e não do status histórico; os rankings usam apenas IDs relevantes, o tempo médio de devolução é calculado com os retornos físicos e os gráficos passam a usar meses reais.
+- A tela de login permite solicitar cadastro. Os papéis determinam a exposição de botões de operação e do menu de auditoria; a autorização efetiva permanece no PostgreSQL, nunca apenas no frontend.
+- O primeiro acesso administrador depende de uma identidade real confirmada. Não há credenciais padrão ou promoção automática do primeiro usuário.
