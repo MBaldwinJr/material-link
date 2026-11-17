@@ -9,7 +9,10 @@ import {
   Truck,
   Undo2,
 } from "lucide-react";
-import type { ReactNode } from "react";
+import { useEffect, useState, type FormEvent, type ReactNode } from "react";
+import type { Session } from "@supabase/supabase-js";
+import { useQueryClient } from "@tanstack/react-query";
+import { supabase } from "@/integrations/supabase/client";
 
 interface NavItem {
   readonly to: string;
@@ -35,7 +38,7 @@ interface AppShellProps {
   readonly children: ReactNode;
 }
 
-export function AppShell({ title, description, actions, children }: AppShellProps) {
+function AuthenticatedShell({ title, description, actions, children }: AppShellProps) {
   return (
     <div className="min-h-screen bg-muted/40">
       <div className="mx-auto flex max-w-[1600px] flex-col lg:flex-row">
@@ -81,4 +84,128 @@ export function AppShell({ title, description, actions, children }: AppShellProp
       </div>
     </div>
   );
+}
+
+
+type AccessRole = "admin" | "gestor" | "operador" | "consulta";
+type AccessState = AccessRole | "checking" | "denied";
+
+function AuthGate({ children }: { readonly children: ReactNode }) {
+  const queryClient = useQueryClient();
+  const [ready, setReady] = useState(false);
+  const [session, setSession] = useState<Session | null>(null);
+  const [access, setAccess] = useState<AccessState>("checking");
+  const [email, setEmail] = useState("");
+  const [password, setPassword] = useState("");
+  const [error, setError] = useState<string | null>(null);
+  const [submitting, setSubmitting] = useState(false);
+
+  useEffect(() => {
+    let live = true;
+    void supabase.auth.getSession().then(({ data }) => {
+      if (!live) return;
+      setSession(data.session);
+      setReady(true);
+    }).catch(() => {
+      if (live) setReady(true);
+    });
+    const { data: { subscription } } = supabase.auth.onAuthStateChange((event, updated) => {
+      if (!live) return;
+      if (event === "SIGNED_IN" || event === "SIGNED_OUT") queryClient.clear();
+      setSession(updated);
+      setAccess("checking");
+      setReady(true);
+    });
+    return () => { live = false; subscription.unsubscribe(); };
+  }, [queryClient]);
+
+  useEffect(() => {
+    let live = true;
+    if (!session?.user.id) {
+      setAccess("checking");
+      return;
+    }
+    setAccess("checking");
+    void supabase
+      .from("inter_mat_operadores")
+      .select("papel, ativo")
+      .eq("usuario_id", session.user.id)
+      .maybeSingle()
+      .then(({ data, error: queryError }) => {
+        if (!live) return;
+        setAccess(!queryError && data?.ativo ? data.papel : "denied");
+      });
+    return () => { live = false; };
+  }, [session?.access_token, session?.user.id]);
+
+  async function signIn(event: FormEvent<HTMLFormElement>) {
+    event.preventDefault();
+    setSubmitting(true);
+    setError(null);
+    try {
+      const { error: signInError } = await supabase.auth.signInWithPassword({ email, password });
+      if (signInError) setError("Não foi possível autenticar. Verifique seus dados.");
+      else setPassword("");
+    } catch {
+      setError("Falha de conexão ao autenticar.");
+    } finally {
+      setSubmitting(false);
+    }
+  }
+
+  async function signOut() {
+    queryClient.clear();
+    setAccess("checking");
+    const { error: signOutError } = await supabase.auth.signOut();
+    if (signOutError) setError("Não foi possível encerrar a sessão. Tente novamente.");
+  }
+
+  if (!ready || (session && access === "checking")) {
+    return <div role="status" className="min-h-screen grid place-items-center text-muted-foreground">
+      Verificando acesso ao InterMat...
+    </div>;
+  }
+
+  if (!session || access === "denied") {
+    return <div className="min-h-screen bg-muted/40 grid place-items-center px-4">
+      <div className="w-full max-w-sm space-y-5 rounded-xl border bg-background p-6 shadow-sm">
+        <div>
+          <h1 className="text-xl font-semibold">InterMat — acesso restrito</h1>
+          <p className="mt-1 text-sm text-muted-foreground">
+            {session
+              ? "Sua conta não possui autorização ativa. Solicite a liberação ao administrador."
+              : "Entre com uma conta autorizada do Supabase Auth."}
+          </p>
+        </div>
+        {session ? (
+          <button type="button" onClick={() => { void signOut(); }}
+            className="w-full rounded-md border px-4 py-2 text-sm font-medium">
+            Sair da conta
+          </button>
+        ) : (
+          <form onSubmit={(event) => { void signIn(event); }} className="space-y-3">
+            <label className="block text-sm font-medium" htmlFor="intermat-email">E-mail</label>
+            <input id="intermat-email" type="email" autoComplete="username"
+              required value={email} onChange={(event) => setEmail(event.target.value)}
+              className="w-full rounded-md border bg-background px-3 py-2" />
+            <label className="block text-sm font-medium" htmlFor="intermat-password">Senha</label>
+            <input id="intermat-password" type="password" autoComplete="current-password"
+              required value={password} onChange={(event) => setPassword(event.target.value)}
+              className="w-full rounded-md border bg-background px-3 py-2" />
+            <button type="submit" disabled={submitting}
+              className="w-full rounded-md bg-primary px-4 py-2 font-medium text-primary-foreground disabled:opacity-50">
+              {submitting ? "Autenticando..." : "Entrar"}
+            </button>
+          </form>
+        )}
+        {error && <p role="alert" className="text-sm text-destructive">{error}</p>}
+      </div>
+    </div>;
+  }
+
+  return <>{children}</>;
+}
+
+export function AppShell(props: AppShellProps) {
+  return <AuthGate><AuthenticatedShell {...props} /></AuthGate>;
 }
