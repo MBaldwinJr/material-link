@@ -145,7 +145,11 @@ function AuthGate({ children }: { readonly children: ReactNode }) {
     try {
       const { error: signInError } = await supabase.auth.signInWithPassword({ email, password });
       if (signInError) setError("Não foi possível autenticar. Verifique seus dados.");
-      else setPassword("");
+      else {
+        setPassword("");
+        // Recreate route query observers with the authenticated session.
+        window.location.assign(window.location.pathname);
+      }
     } catch {
       setError("Falha de conexão ao autenticar.");
     } finally {
@@ -158,6 +162,7 @@ function AuthGate({ children }: { readonly children: ReactNode }) {
     setAccess("checking");
     const { error: signOutError } = await supabase.auth.signOut();
     if (signOutError) setError("Não foi possível encerrar a sessão. Tente novamente.");
+    else window.location.assign("/");
   }
 
   if (!ready || (session && access === "checking")) {
