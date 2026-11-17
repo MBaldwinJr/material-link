@@ -82,3 +82,21 @@ Para preservar a semântica atual, os eventos `troca`, `avaria` e `perda` **baix
 - `src/components/layout/app-shell.tsx`
 - `tests/p0.security.sql`
 - `tests/p0.integration.test.mjs`
+
+## Situação verificada do banco original (17/11/2026)
+
+O repositório identifica o projeto Supabase `sskjqromwluuzohnephz`, associado ao projeto Material Link no Lovable Cloud. A leitura anterior identificou: **3.964 produtos**, **1 empresa**, **1 empréstimo**, **1 devolução**, **2 movimentações**, **3 eventos de auditoria**, e **zero usuários em auth.users**. Dentre os produtos, **28 possuem estoque negativo**; o único empréstimo está marcado como `aberto`, embora `quantidade_devolvida = quantidade = 1`. Esses dados não devem ser tratados como banco vazio nem excluídos automaticamente.
+
+A restrição `CHECK (estoque_atual >= 0)` foi adiada para não impedir atualizações de registros históricos inconsistentes. O RPC de empréstimos continua validando que o saldo é suficiente.
+
+### Política de custo — nenhum crédito Lovable
+
+Não usar mensagens, agentes, geração de projeto, deploy ou build pelo Lovable nesta etapa. O GitHub e o GitHub Actions são a fonte de desenvolvimento e verificação do código; preferir um Supabase externo/isolado para homologação.
+
+**Bloqueio de ativação:** ainda não existe usuário em Supabase Auth no banco original. Antes da migração é necessário criar/provisionar uma conta administrativa autorizada, confirmar sua identidade e testar o acesso. Não aplicar o hardening apenas porque o sistema nunca foi usado. No estado atual, a aplicação ficaria sem acesso após a migration.
+
+### Critérios adicionais de aceite
+
+- Revisar os 28 saldos negativos e o empréstimo marcado como aberto apesar de totalmente devolvido, sem sobrescrever o histórico.
+- Não aplicar migrations ao banco original sem disponibilidade de conta administradora e caminho de restauração.
+- Não usar créditos do Lovable para concluir a fase P0.
