@@ -32,7 +32,7 @@ BEGIN
     LOOP
       EXECUTE format('DROP POLICY %I ON public.%I', pol.policyname, target);
     END LOOP;
-    EXECUTE format('REVOKE ALL PRIVILEGES ON TABLE public.%I FROM anon, authenticated', target);
+    EXECUTE format('REVOKE ALL PRIVILEGES ON TABLE public.%I FROM PUBLIC, anon, authenticated', target);
     EXECUTE format('GRANT SELECT ON TABLE public.%I TO authenticated', target);
     EXECUTE format(
       'CREATE POLICY "intermat_member_select" ON public.%I FOR SELECT TO authenticated
