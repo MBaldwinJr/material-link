@@ -2,6 +2,7 @@ import { createFileRoute } from "@tanstack/react-router";
 import { useState } from "react";
 import { Plus } from "lucide-react";
 import { AppShell } from "@/components/layout/app-shell";
+import { RoleAccess } from "@/components/auth/role-access";
 import { EmptyState, LoadingGrid } from "@/components/layout/states";
 import { Button } from "@/components/ui/button";
 import { useEmpresas, useEmprestimos, useProdutos } from "@/hooks/use-intermat";
@@ -39,9 +40,11 @@ function EmprestimosPage() {
       title="Empréstimos"
       description="Cada confirmação reduz o estoque, gera movimentação e atualiza o saldo da empresa."
       actions={
-        <Button onClick={() => setOpen(true)}>
-          <Plus className="size-4" /> Novo empréstimo
-        </Button>
+        <RoleAccess roles={["admin", "gestor", "operador"]}>
+          <Button onClick={() => setOpen(true)}>
+            <Plus className="size-4" /> Novo empréstimo
+          </Button>
+        </RoleAccess>
       }
     >
       <EmprestimoFormDialog open={open} onOpenChange={setOpen} />
