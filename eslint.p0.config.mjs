@@ -11,6 +11,13 @@ export default [
       "src/services/cloud-service.ts",
       "src/integrations/supabase/types.ts",
       "tests/p0.integration.test.mjs",
+      "src/components/auth/role-access.tsx",
+      "src/features/shared/components/data-table.tsx",
+      "src/features/empresas/components/empresa-table.tsx",
+      "src/routes/empresas.tsx",
+      "src/routes/emprestimos.tsx",
+      "src/routes/devolucoes.tsx",
+      "src/routes/produtos.tsx",
     ],
     plugins: { "@typescript-eslint": tseslint.plugin },
     rules: {
