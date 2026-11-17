@@ -136,8 +136,6 @@ export async function createEmpresa(input: any): Promise<Empresa> {
     .select()
     .single();
   if (error) throw error;
-  
-  await logAuditoria("Cadastro de empresa", data.nome_fantasia, `CNPJ ${data.cnpj}`);
   return mapEmpresa(data);
 }
 
@@ -166,8 +164,6 @@ export async function updateEmpresa(id: string, input: any): Promise<Empresa> {
     .select()
     .single();
   if (error) throw error;
-
-  await logAuditoria("Edição de empresa", data.nome_fantasia, `ID ${id}`);
   return mapEmpresa(data);
 }
 
@@ -200,8 +196,6 @@ export async function createProduto(input: any): Promise<Produto> {
     .select()
     .single();
   if (error) throw error;
-
-  await logAuditoria("Cadastro de produto", data.codigo, data.descricao);
   return mapProduto(data);
 }
 
@@ -214,109 +208,44 @@ export async function listEmprestimos(): Promise<Emprestimo[]> {
   return (data || []).map(mapEmprestimo);
 }
 
-export async function createEmprestimo(input: any): Promise<Emprestimo> {
-  // Generate a number or let DB handle it? For now, simple count + sequence
-  const { count } = await supabase.from("emprestimos").select("*", { count: 'exact', head: true });
-  const numero = `EMP-${String((count || 0) + 201).padStart(5, "0")}`;
-
-  const { data: loan, error } = await supabase
-    .from("emprestimos")
-    .insert({
-      numero,
-      empresa_id: input.empresaId,
-      produto_id: input.produtoId,
-      quantidade: input.quantidade,
-      quantidade_devolvida: 0,
-      valor_unitario_centavos: input.valorUnitarioCentavos,
-      data: input.data,
-      prazo_devolucao: input.prazoDevolucao,
-      responsavel: input.responsavel,
-      motorista: input.motorista,
-      veiculo: input.veiculo,
-      observacoes: input.observacoes,
-      status: "aberto"
-    })
-    .select()
-    .single();
-  if (error) throw error;
-
-  // Update Stock
-  const { data: product } = await supabase.from("produtos").select("estoque_atual").eq("id", input.produtoId).single();
-  if (product) {
-    await supabase.from("produtos")
-      .update({ estoque_atual: Math.max(0, Number(product.estoque_atual) - input.quantidade) })
-      .eq("id", input.produtoId);
-  }
-
-  // Stock Movement
-  await supabase.from("movimentacoes_estoque").insert({
-    produto_id: input.produtoId,
-    empresa_id: input.empresaId,
-    tipo: "saida",
-    quantidade: input.quantidade,
-    usuario: input.responsavel,
-    data: input.data,
-    origem: numero
+// A single PostgreSQL RPC performs all writes atomically and authorizes the
+// signed-in operator. Never recreate a read-modify-write stock flow here.
+export async function createEmprestimo(input: EmprestimoInput): Promise<Emprestimo> {
+  const { data, error } = await supabase.rpc("registrar_emprestimo_seguro", {
+    p_empresa_id: input.empresaId,
+    p_produto_id: input.produtoId,
+    p_quantidade: input.quantidade,
+    p_valor_unitario_centavos: input.valorUnitarioCentavos,
+    p_data: input.data,
+    p_prazo_devolucao: input.prazoDevolucao,
+    p_responsavel: input.responsavel,
+    p_motorista: input.motorista,
+    p_veiculo: input.veiculo,
+    p_observacoes: input.observacoes,
   });
-
-  await logAuditoria("Criação de empréstimo", numero, `${input.quantidade} un. movimentadas.`);
-  return mapEmprestimo(loan);
+  if (error) throw error;
+  if (!data) throw new Error("O empréstimo não foi confirmado pelo servidor.");
+  return mapEmprestimo(data);
 }
 
 export async function registrarDevolucao(input: DevolucaoInput): Promise<Devolucao> {
-  const { data: devolucao, error } = await supabase
-    .from("devolucoes")
-    .insert({
-      emprestimo_id: input.emprestimoId,
-      tipo: input.tipo,
-      quantidade: input.quantidade,
-      responsavel: input.responsavel,
-      observacoes: input.observacoes,
-      data: new Date().toISOString()
-    })
-    .select()
-    .single();
-    
+  const { data, error } = await supabase.rpc("registrar_devolucao_segura", {
+    p_emprestimo_id: input.emprestimoId,
+    p_tipo: input.tipo,
+    p_quantidade: input.quantidade,
+    p_responsavel: input.responsavel,
+    p_observacoes: input.observacoes,
+  });
   if (error) throw error;
-
-  // Update loan quantity
-  const { data: loan } = await supabase.from("emprestimos").select("quantidade_devolvida, numero, produto_id, empresa_id").eq("id", input.emprestimoId).single();
-  if (loan) {
-    await supabase.from("emprestimos")
-      .update({ quantidade_devolvida: (Number(loan.quantidade_devolvida) || 0) + input.quantidade })
-      .eq("id", input.emprestimoId);
-
-    // Update stock if applicable
-    if (input.tipo === "total" || input.tipo === "parcial") {
-      const { data: product } = await supabase.from("produtos").select("estoque_atual").eq("id", loan.produto_id).single();
-      if (product) {
-        await supabase.from("produtos")
-          .update({ estoque_atual: Number(product.estoque_atual) + input.quantidade })
-          .eq("id", loan.produto_id);
-      }
-      
-      await supabase.from("movimentacoes_estoque").insert({
-        produto_id: loan.produto_id,
-        empresa_id: loan.empresa_id,
-        tipo: "entrada",
-        quantidade: input.quantidade,
-        usuario: input.responsavel,
-        data: new Date().toISOString(),
-        origem: loan.numero
-      });
-    }
-    
-    await logAuditoria(`Devolução (${input.tipo})`, loan.numero || 'N/A', input.observacoes || `${input.quantidade} un.`);
-  }
-
+  if (!data) throw new Error("A devolução não foi confirmada pelo servidor.");
   return {
-    id: devolucao.id,
-    emprestimoId: devolucao.emprestimo_id,
-    tipo: devolucao.tipo as any,
-    quantidade: Number(devolucao.quantidade),
-    data: devolucao.data,
-    responsavel: devolucao.responsavel || '',
-    observacoes: devolucao.observacoes || ''
+    id: data.id,
+    emprestimoId: data.emprestimo_id,
+    tipo: data.tipo as DevolucaoTipo,
+    quantidade: Number(data.quantidade),
+    data: data.data,
+    responsavel: data.responsavel || "",
+    observacoes: data.observacoes || "",
   };
 }
 
@@ -337,15 +266,6 @@ export async function listDevolucoes(): Promise<Devolucao[]> {
   }));
 }
 
-async function logAuditoria(acao: string, entidade: string, detalhes: string) {
-  await supabase.from("auditoria").insert({
-    usuario: "usuario.atual",
-    acao,
-    entidade,
-    detalhes: JSON.stringify(detalhes)
-  });
-}
-
 export async function importProdutos(
   rows: readonly any[],
   origem: string,
@@ -361,7 +281,7 @@ export async function importProdutos(
       .maybeSingle();
 
     if (existing) {
-      await supabase
+      const { error: updateError } = await supabase
         .from("produtos")
         .update({
           codigo_barras: row.codigoBarras,
@@ -372,14 +292,16 @@ export async function importProdutos(
           unidade: row.unidade,
           custo_centavos: row.custoCentavos,
           venda_centavos: row.vendaCentavos,
-          estoque_atual: row.estoqueAtual,
+          // Existing physical stock is authoritative: importing a catalog
+          // must not silently replace the balance affected by loans/returns.
           estoque_minimo: row.estoqueMinimo,
           localizacao: row.localizacao,
         })
         .eq("id", existing.id);
+      if (updateError) throw updateError;
       atualizados++;
     } else {
-      await supabase
+      const { error: insertError } = await supabase
         .from("produtos")
         .insert({
           codigo: row.codigo,
@@ -395,11 +317,10 @@ export async function importProdutos(
           estoque_minimo: row.estoqueMinimo,
           localizacao: row.localizacao,
         });
+      if (insertError) throw insertError;
       criados++;
     }
   }
-
-  await logAuditoria("Importação de produtos", origem, `${criados} criados · ${atualizados} atualizados`);
   return { criados, atualizados };
 }
 
