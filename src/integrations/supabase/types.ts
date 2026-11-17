@@ -14,6 +14,27 @@ export type Database = {
   }
   public: {
     Tables: {
+      inter_mat_operadores: {
+        Row: {
+          usuario_id: string
+          papel: "admin" | "gestor" | "operador" | "consulta"
+          ativo: boolean
+          criado_em: string
+        }
+        Insert: {
+          usuario_id: string
+          papel: "admin" | "gestor" | "operador" | "consulta"
+          ativo?: boolean
+          criado_em?: string
+        }
+        Update: {
+          usuario_id?: string
+          papel?: "admin" | "gestor" | "operador" | "consulta"
+          ativo?: boolean
+          criado_em?: string
+        }
+        Relationships: []
+      }
       auditoria: {
         Row: {
           acao: string
