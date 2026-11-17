@@ -13,6 +13,7 @@ import { useEffect, useState, type FormEvent, type ReactNode } from "react";
 import type { Session } from "@supabase/supabase-js";
 import { useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
+import { RoleProvider, useAccessRole, type AccessRole } from "@/components/auth/role-access";
 
 interface NavItem {
   readonly to: string;
@@ -39,6 +40,7 @@ interface AppShellProps {
 }
 
 function AuthenticatedShell({ title, description, actions, children }: AppShellProps) {
+  const role = useAccessRole();
   return (
     <div className="min-h-screen bg-muted/40">
       <div className="mx-auto flex max-w-[1600px] flex-col lg:flex-row">
@@ -53,7 +55,7 @@ function AuthenticatedShell({ title, description, actions, children }: AppShellP
             </div>
           </div>
           <nav aria-label="Navegação principal" className="flex gap-1 overflow-x-auto px-3 pb-4 lg:flex-col lg:overflow-visible">
-            {NAV_ITEMS.map((item) => (
+            {NAV_ITEMS.filter((item) => item.to !== "/auditoria" || role === "admin" || role === "gestor").map((item) => (
               <Link
                 key={item.to}
                 to={item.to}
@@ -87,7 +89,6 @@ function AuthenticatedShell({ title, description, actions, children }: AppShellP
 }
 
 
-type AccessRole = "admin" | "gestor" | "operador" | "consulta";
 type AccessState = AccessRole | "checking" | "denied";
 
 function AuthGate({ children }: { readonly children: ReactNode }) {
@@ -237,7 +238,7 @@ function AuthGate({ children }: { readonly children: ReactNode }) {
     </div>;
   }
 
-  return <>{children}</>;
+  return <RoleProvider role={access as AccessRole}>{children}</RoleProvider>;
 }
 
 export function AppShell(props: AppShellProps) {
