@@ -268,7 +268,7 @@ export async function listDevolucoes(): Promise<Devolucao[]> {
 
 export async function importProdutos(
   rows: readonly any[],
-  origem: string,
+  _origem: string,
 ): Promise<{ criados: number; atualizados: number }> {
   let criados = 0;
   let atualizados = 0;
