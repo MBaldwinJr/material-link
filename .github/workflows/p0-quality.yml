@@ -44,6 +44,14 @@ jobs:
           psql -X -v ON_ERROR_STOP=1 -f supabase/migrations/20261117184300_p0_security_atomic_ops.sql
       - name: Verify RLS and transactional business cases
         run: psql -X -v ON_ERROR_STOP=1 -f tests/p0.postgres.smoke.sql
+      - name: Verify first admin requires confirmed email
+        run: |
+          if psql -X -v ON_ERROR_STOP=1 -v ADMIN_EMAIL='p0-admin@example.invalid' -f scripts/p0-bootstrap-admin.sql; then
+            echo "ERROR: bootstrap allowed unconfirmed account"
+            exit 1
+          fi
+          psql -X -v ON_ERROR_STOP=1 -c "UPDATE auth.users SET email_confirmed_at = now() WHERE id = '11111111-1111-4111-8111-111111111111'"
+          psql -X -v ON_ERROR_STOP=1 -v ADMIN_EMAIL='p0-admin@example.invalid' -f scripts/p0-bootstrap-admin.sql
       - name: Verify concurrent loan and return consistency
         env:
           INTERMAT_P0_CI_POSTGRES: YES_DISPOSABLE_CI_ONLY
@@ -70,5 +78,5 @@ jobs:
       - name: Build
         run: bun run build
 
-# Database tests are intentionally excluded: they require a disposable
-# Supabase environment and an explicit opt-in. See docs/P0_SECURITY_ROLLOUT.md.
+# All database tests use a disposable CI Postgres container, never the
+# real Supabase project. See docs/P0_SECURITY_ROLLOUT.md.
