@@ -7,6 +7,43 @@ permissions:
   contents: read
 
 jobs:
+  postgres-smoke:
+    runs-on: ubuntu-latest
+    timeout-minutes: 12
+    services:
+      postgres:
+        image: postgres:17
+        env:
+          POSTGRES_USER: postgres
+          POSTGRES_PASSWORD: p0-ci-only
+          POSTGRES_DB: intermat_p0
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U postgres -d intermat_p0"
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 15
+    env:
+      PGHOST: 127.0.0.1
+      PGPORT: 5432
+      PGUSER: postgres
+      PGPASSWORD: p0-ci-only
+      PGDATABASE: intermat_p0
+      PGOPTIONS: -csearch_path=public
+    steps:
+      - uses: actions/checkout@v4
+      - name: Initialize disposable Supabase-compatible auth roles
+        run: psql -X -v ON_ERROR_STOP=1 -f tests/p0.postgres.bootstrap.sql
+      - name: Apply historical schema and P0 migration only in CI Postgres
+        run: |
+          psql -X -v ON_ERROR_STOP=1 -f supabase/migrations/20260805202137_5cf5042a-db81-4bbf-bcad-776caac8184e.sql
+          psql -X -v ON_ERROR_STOP=1 -f supabase/migrations/20260805202338_499f103b-28b2-4641-a26d-e0b22d8f948f.sql
+          psql -X -v ON_ERROR_STOP=1 -f supabase/migrations/20260806114425_88755131-959c-493d-908c-389057b5291a.sql
+          psql -X -v ON_ERROR_STOP=1 -f supabase/migrations/20260807121251_5d4b3b5f-0701-4026-97e5-28c561b06882.sql
+          psql -X -v ON_ERROR_STOP=1 -f supabase/migrations/20261117184300_p0_security_atomic_ops.sql
+      - name: Verify RLS and transactional business cases
+        run: psql -X -v ON_ERROR_STOP=1 -f tests/p0.postgres.smoke.sql
   validate:
     runs-on: ubuntu-latest
     timeout-minutes: 15
