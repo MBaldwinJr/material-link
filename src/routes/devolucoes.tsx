@@ -2,6 +2,7 @@ import { createFileRoute } from "@tanstack/react-router";
 import { useState } from "react";
 import { Undo2 } from "lucide-react";
 import { AppShell } from "@/components/layout/app-shell";
+import { RoleAccess } from "@/components/auth/role-access";
 import { EmptyState, LoadingGrid } from "@/components/layout/states";
 import { Button } from "@/components/ui/button";
 import {
@@ -44,9 +45,11 @@ function DevolucoesPage() {
       title="Devoluções"
       description="Total, parcial, troca, avaria ou perda — com atualização automática de estoque e saldo."
       actions={
-        <Button onClick={() => setOpen(true)}>
-          <Undo2 className="size-4" /> Registrar devolução
-        </Button>
+        <RoleAccess roles={["admin", "gestor", "operador"]}>
+          <Button onClick={() => setOpen(true)}>
+            <Undo2 className="size-4" /> Registrar devolução
+          </Button>
+        </RoleAccess>
       }
     >
       <DevolucaoFormDialog open={open} onOpenChange={setOpen} />
