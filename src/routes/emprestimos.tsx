@@ -1,4 +1,4 @@
-import { createFileRoute } from "@tanstack/react-router";
+import { createFileRoute, redirect } from "@tanstack/react-router";
 import { useState } from "react";
 import { Plus } from "lucide-react";
 import { AppShell } from "@/components/layout/app-shell";
@@ -10,6 +10,7 @@ import { EmprestimoFormDialog } from "@/features/emprestimos/components/empresti
 import { EmprestimoTable } from "@/features/emprestimos/components/emprestimo-table";
 
 export const Route = createFileRoute("/emprestimos")({
+  beforeLoad: () => { throw redirect({ to: "/rede" }); },
   head: () => ({
     meta: [
       { title: "Empréstimos de materiais | InterMat" },

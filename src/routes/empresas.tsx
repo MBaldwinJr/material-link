@@ -1,4 +1,4 @@
-import { createFileRoute } from "@tanstack/react-router";
+import { createFileRoute, redirect } from "@tanstack/react-router";
 import { useState } from "react";
 import { Plus } from "lucide-react";
 import { AppShell } from "@/components/layout/app-shell";
@@ -11,6 +11,7 @@ import { EmpresaTable } from "@/features/empresas/components/empresa-table";
 import { Empresa } from "@/types/domain";
 
 export const Route = createFileRoute("/empresas")({
+  beforeLoad: () => { throw redirect({ to: "/rede" }); },
   head: () => ({
     meta: [
       { title: "Empresas parceiras | InterMat" },
