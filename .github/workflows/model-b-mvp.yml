@@ -50,6 +50,7 @@ jobs:
           psql -X -v ON_ERROR_STOP=1 -f supabase/migrations/20261118001200_rede_convites_membros.sql
           psql -X -v ON_ERROR_STOP=1 -f supabase/migrations/20261118001300_rede_lockdown_legacy.sql
           psql -X -v ON_ERROR_STOP=1 -f supabase/migrations/20261118001400_rede_legacy_import_tracking.sql
+          psql -X -v ON_ERROR_STOP=1 -f supabase/migrations/20261118001500_rede_stock_adjustments.sql
       - name: Verify legacy rows were preserved and public access was revoked
         run: psql -X -v ON_ERROR_STOP=1 -f tests/rede.legacy_lockdown.sql
       - name: Verify A/B/C tenant isolation and full bilateral transaction cycle
@@ -62,6 +63,8 @@ jobs:
           psql -X -v ON_ERROR_STOP=1 -v CNPJ='00000000000001' -v CONFIRMED_OWNER_EMAIL='a@example.invalid' -f scripts/rede-verify-organization.sql
           psql -X -v ON_ERROR_STOP=1 -v OWNER_CNPJ='00000000000001' -f scripts/rede-import-legacy-products.sql
           psql -X -v ON_ERROR_STOP=1 -f tests/rede.import_integrity.sql
+      - name: Verify stock adjustments are audited and cannot consume reservations
+        run: psql -X -v ON_ERROR_STOP=1 -f tests/rede.stock_adjustment.sql
       - name: Verify simultaneous reservations, returns and role revocation
         env:
           MATERIAL_LINK_CI_EPHEMERAL: YES
