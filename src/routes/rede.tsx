@@ -9,6 +9,7 @@ import {
   createNetworkOrganization,
   inviteOrganizationMember,
   acceptOrganizationInvitation,
+  adjustOrganizationStock,
   type NetworkSnapshot,
   type LoanRow,
   type OrganizationRow,
@@ -452,6 +453,9 @@ function Products({ organizationId, products, canStock, canCommercial, perform, 
   const [quantity, setQuantity] = useState("0");
   const [publishId, setPublishId] = useState("");
   const [price, setPrice] = useState("0");
+  const [adjustProduct, setAdjustProduct] = useState("");
+  const [adjustDelta, setAdjustDelta] = useState("0");
+  const [adjustReason, setAdjustReason] = useState("");
   return <div className="space-y-4">
     <h2 className="text-xl font-semibold">Estoque privado da empresa</h2>
     <p className="text-muted-foreground text-sm">Preços internos e saldo físico não são compartilhados com parceiros.</p>
@@ -494,6 +498,35 @@ function Products({ organizationId, products, canStock, canCommercial, perform, 
         </form></CardContent>
       </Card>}
     </div>
+    {canStock && <Card>
+      <CardHeader><CardTitle className="text-base">Ajustar estoque com justificativa</CardTitle></CardHeader>
+      <CardContent>
+        <form className="flex flex-wrap items-end gap-2" onSubmit={(event) => {
+          event.preventDefault();
+          void perform(() => adjustOrganizationStock(
+            organizationId, adjustProduct, Number(adjustDelta), adjustReason,
+          ), "Saldo ajustado com histórico de auditoria.");
+        }}>
+          <select aria-label="Produto para ajuste" required value={adjustProduct}
+            onChange={(event) => setAdjustProduct(event.target.value)}
+            className="min-w-52 rounded-md border bg-background px-3 py-2">
+            <option value="">Selecione um produto</option>
+            {products.map((product) => <option value={product.id} key={product.id}>
+              {product.codigo} — {product.descricao}
+            </option>)}
+          </select>
+          <label className="text-sm">Diferença (+ ou −)
+            <Input type="number" step="0.001" required value={adjustDelta}
+              onChange={(event) => setAdjustDelta(event.target.value)} />
+          </label>
+          <label className="text-sm">Motivo
+            <Input required minLength={5} placeholder="Ex.: Conferência física"
+              value={adjustReason} onChange={(event) => setAdjustReason(event.target.value)} />
+          </label>
+          <Button disabled={busy || !adjustProduct || Number(adjustDelta) === 0}>Ajustar</Button>
+        </form>
+      </CardContent>
+    </Card>}
     <Card><CardContent className="p-4">
       <div className="space-y-2">
         {products.map((p) => <div key={p.id} className="flex flex-wrap items-center justify-between gap-2 border-b py-3 text-sm last:border-0">
