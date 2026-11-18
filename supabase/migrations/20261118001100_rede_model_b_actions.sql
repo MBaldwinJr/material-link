@@ -301,8 +301,7 @@ BEGIN
     ELSIF p_acao = 'enviar_devolucao' THEN
       IF v_loan.tomadora_id <> p_organizacao_id
         OR NOT rede_private.has_role(p_organizacao_id,ARRAY[
-            'proprietario','administrador','estoque'])
-        OR v_loan.status NOT IN ('recebido','devolucao_em_transito') THEN
+            'proprietario','administrador','estoque']) THEN
         RAISE EXCEPTION 'Devolução não autorizada' USING ERRCODE='42501';
       END IF;
       v_qty := (p_dados->>'quantidade')::NUMERIC;
@@ -318,6 +317,9 @@ BEGIN
           RAISE EXCEPTION 'Idempotência da devolução inválida' USING ERRCODE='23505';
         END IF;
         RETURN to_jsonb(v_return);
+      END IF;
+      IF v_loan.status NOT IN ('recebido','devolucao_em_transito') THEN
+        RAISE EXCEPTION 'Empréstimo não aceita novas devoluções' USING ERRCODE='23514';
       END IF;
       SELECT COALESCE(SUM(quantidade),0) INTO v_pending
         FROM public.rede_devolucoes
