@@ -130,6 +130,10 @@ interface NetworkDatabase {
         Args: { p_token: string };
         Returns: Json;
       };
+      rede_ajustar_estoque: {
+        Args: { p_organizacao_id: string; p_produto_id: string; p_diferenca: number; p_motivo: string };
+        Returns: Json;
+      };
     };
     Enums: Record<string, never>;
     CompositeTypes: Record<string, never>;
@@ -166,6 +170,18 @@ export async function createNetworkOrganization(
   if (error) throw error;
   if (data === null) throw new Error("A organização não foi criada.");
   return data as unknown as OrganizationRow;
+}
+
+export async function adjustOrganizationStock(
+  organizationId: string, productId: string, delta: number, reason: string,
+): Promise<{ produto_id: string; estoque_anterior: number; estoque_atual: number }> {
+  const { data, error } = await networkDb.rpc("rede_ajustar_estoque" as never, {
+    p_organizacao_id: organizationId, p_produto_id: productId,
+    p_diferenca: delta, p_motivo: reason,
+  } as never);
+  if (error) throw error;
+  if (data === null) throw new Error("Ajuste de estoque não confirmado.");
+  return data as unknown as { produto_id: string; estoque_anterior: number; estoque_atual: number };
 }
 
 export interface MemberInvitation {
