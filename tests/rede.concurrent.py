@@ -90,7 +90,7 @@ success, failure = race(
 assert "Estoque disponível insuficiente" in failure.stderr, failure.stderr
 accepted_id = success["id"]
 assert ok(
-    f"SELECT reservado FROM public.rede_produtos WHERE id='{product['id']}'"
+    f"SELECT reservado::float8 FROM public.rede_produtos WHERE id='{product['id']}'"
 ) == "1"
 assert ok(
     f"SELECT count(*) FROM public.rede_emprestimos "
@@ -124,7 +124,7 @@ settled, rejected = race(
 assert settled["status"] == "concluido"
 assert "não autorizada" in rejected.stderr or "mudou" in rejected.stderr
 assert ok(
-    f"SELECT estoque FROM public.rede_produtos WHERE id='{product['id']}'"
+    f"SELECT estoque::float8 FROM public.rede_produtos WHERE id='{product['id']}'"
 ) == "1"
 assert ok(
     f"SELECT count(*) FROM public.rede_movimentos "
