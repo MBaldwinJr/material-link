@@ -1,4 +1,4 @@
-import { createFileRoute } from "@tanstack/react-router";
+import { createFileRoute, redirect } from "@tanstack/react-router";
 import { useState } from "react";
 import { Undo2 } from "lucide-react";
 import { AppShell } from "@/components/layout/app-shell";
@@ -14,6 +14,7 @@ import { DevolucaoFormDialog } from "@/features/devolucoes/components/devolucao-
 import { DevolucaoTable } from "@/features/devolucoes/components/devolucao-table";
 
 export const Route = createFileRoute("/devolucoes")({
+  beforeLoad: () => { throw redirect({ to: "/rede" }); },
   head: () => ({
     meta: [
       { title: "Devoluções e ocorrências | InterMat" },

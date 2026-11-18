@@ -1,4 +1,4 @@
-import { createFileRoute } from "@tanstack/react-router";
+import { createFileRoute, redirect } from "@tanstack/react-router";
 import { AppShell } from "@/components/layout/app-shell";
 import { EmptyState, LoadingGrid } from "@/components/layout/states";
 import { ProdutoImportDialog } from "@/features/produtos/components/produto-import-dialog";
@@ -7,6 +7,7 @@ import { useHydrated } from "@/hooks/use-hydrated";
 import { ProdutoTable } from "@/features/produtos/components/produto-table";
 
 export const Route = createFileRoute("/produtos")({
+  beforeLoad: () => { throw redirect({ to: "/rede" }); },
   head: () => ({
     meta: [
       { title: "Produtos e materiais | InterMat" },

@@ -1,4 +1,4 @@
-import { createFileRoute } from "@tanstack/react-router";
+import { createFileRoute, redirect } from "@tanstack/react-router";
 
 import { AppShell } from "@/components/layout/app-shell";
 import { EmptyState, LoadingGrid } from "@/components/layout/states";
@@ -16,6 +16,7 @@ import { useEmpresas, useOperacional, useProdutos } from "@/hooks/use-intermat";
 import { useHydrated } from "@/hooks/use-hydrated";
 
 export const Route = createFileRoute("/estoque")({
+  beforeLoad: () => { throw redirect({ to: "/rede" }); },
   head: () => ({
     meta: [
       { title: "Movimentações de estoque | InterMat" },

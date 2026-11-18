@@ -1,4 +1,4 @@
-import { createFileRoute } from "@tanstack/react-router";
+import { createFileRoute, redirect } from "@tanstack/react-router";
 // O projeto foi refatorado seguindo os princípios de Arquitetura Limpa.
 // A lógica de UI foi extraída para componentes modulares em src/features/.
 // O sistema está conectado ao Lovable Cloud com tabelas PostgreSQL e RLS configurado.
@@ -33,6 +33,7 @@ import { useHydrated } from "@/hooks/use-hydrated";
 import { formatCurrency } from "@/lib/format";
 
 export const Route = createFileRoute("/")({
+  beforeLoad: () => { throw redirect({ to: "/rede" }); },
   head: () => ({
     meta: [
       { title: "Dashboard executivo | InterMat" },

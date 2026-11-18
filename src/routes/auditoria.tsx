@@ -1,4 +1,4 @@
-import { createFileRoute } from "@tanstack/react-router";
+import { createFileRoute, redirect } from "@tanstack/react-router";
 
 import { AppShell } from "@/components/layout/app-shell";
 import { EmptyState, LoadingGrid } from "@/components/layout/states";
@@ -15,6 +15,7 @@ import { useOperacional } from "@/hooks/use-intermat";
 import { useHydrated } from "@/hooks/use-hydrated";
 
 export const Route = createFileRoute("/auditoria")({
+  beforeLoad: () => { throw redirect({ to: "/rede" }); },
   head: () => ({
     meta: [
       { title: "Trilha de auditoria | InterMat" },

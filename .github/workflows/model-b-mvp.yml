@@ -1,0 +1,71 @@
+name: Model B - multiempresa integration
+on:
+  pull_request:
+    branches: [main]
+  push:
+    branches: [feat/model-b-network-mvp]
+
+permissions:
+  contents: read
+
+jobs:
+  network-postgres:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    services:
+      postgres:
+        image: postgres:17
+        env:
+          POSTGRES_USER: postgres
+          POSTGRES_PASSWORD: model-b-ci-only
+          POSTGRES_DB: intermat_rede_test
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U postgres -d intermat_rede_test"
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 15
+    env:
+      PGHOST: 127.0.0.1
+      PGPORT: 5432
+      PGUSER: postgres
+      PGPASSWORD: model-b-ci-only
+      PGDATABASE: intermat_rede_test
+      PGOPTIONS: -csearch_path=public
+    steps:
+      - uses: actions/checkout@v4
+      - name: Bootstrap disposable auth
+        run: psql -X -v ON_ERROR_STOP=1 -f tests/rede.postgres.bootstrap.sql
+      - name: Restore legacy public ERP schema in disposable database
+        run: |
+          psql -X -v ON_ERROR_STOP=1 -f supabase/migrations/20260805202137_5cf5042a-db81-4bbf-bcad-776caac8184e.sql
+          psql -X -v ON_ERROR_STOP=1 -f supabase/migrations/20260805202338_499f103b-28b2-4641-a26d-e0b22d8f948f.sql
+          psql -X -v ON_ERROR_STOP=1 -f supabase/migrations/20260806114425_88755131-959c-493d-908c-389057b5291a.sql
+          psql -X -v ON_ERROR_STOP=1 -f supabase/migrations/20260807121251_5d4b3b5f-0701-4026-97e5-28c561b06882.sql
+      - name: Apply multiempresa schema and lock legacy API in disposable PostgreSQL
+        run: |
+          psql -X -v ON_ERROR_STOP=1 -f supabase/migrations/20261118001000_rede_model_b_core.sql
+          psql -X -v ON_ERROR_STOP=1 -f supabase/migrations/20261118001100_rede_model_b_actions.sql
+          psql -X -v ON_ERROR_STOP=1 -f supabase/migrations/20261118001200_rede_convites_membros.sql
+          psql -X -v ON_ERROR_STOP=1 -f supabase/migrations/20261118001300_rede_lockdown_legacy.sql
+          psql -X -v ON_ERROR_STOP=1 -f supabase/migrations/20261118001400_rede_legacy_import_tracking.sql
+          psql -X -v ON_ERROR_STOP=1 -f supabase/migrations/20261118001500_rede_stock_adjustments.sql
+      - name: Verify legacy rows were preserved and public access was revoked
+        run: psql -X -v ON_ERROR_STOP=1 -f tests/rede.legacy_lockdown.sql
+      - name: Verify A/B/C tenant isolation and full bilateral transaction cycle
+        run: psql -X -v ON_ERROR_STOP=1 -f tests/rede.postgres.smoke.sql
+      - name: Verify secure membership invitations and token reuse denial
+        run: psql -X -v ON_ERROR_STOP=1 -f tests/rede.invites.sql
+      - name: Test verified activation and lossless legacy catalog import
+        run: |
+          psql -X -v ON_ERROR_STOP=1 -c "INSERT INTO public.produtos (codigo,descricao,unidade,estoque_atual,custo_centavos,venda_centavos) VALUES ('LEGACY-1','Material legado','UN',5,100,150),('LEGACY-NEG','Saldo histórico','UN',-3,100,150)"
+          psql -X -v ON_ERROR_STOP=1 -v CNPJ='00000000000001' -v CONFIRMED_OWNER_EMAIL='a@example.invalid' -f scripts/rede-verify-organization.sql
+          psql -X -v ON_ERROR_STOP=1 -v OWNER_CNPJ='00000000000001' -f scripts/rede-import-legacy-products.sql
+          psql -X -v ON_ERROR_STOP=1 -f tests/rede.import_integrity.sql
+      - name: Verify stock adjustments are audited and cannot consume reservations
+        run: psql -X -v ON_ERROR_STOP=1 -f tests/rede.stock_adjustment.sql
+      - name: Verify simultaneous reservations, returns and role revocation
+        env:
+          MATERIAL_LINK_CI_EPHEMERAL: YES
+        run: python3 tests/rede.concurrent.py
