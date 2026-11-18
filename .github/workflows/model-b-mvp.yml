@@ -1,0 +1,45 @@
+name: Model B - multiempresa integration
+on:
+  pull_request:
+    branches: [main]
+  push:
+    branches: [feat/model-b-network-mvp]
+
+permissions:
+  contents: read
+
+jobs:
+  network-postgres:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    services:
+      postgres:
+        image: postgres:17
+        env:
+          POSTGRES_USER: postgres
+          POSTGRES_PASSWORD: model-b-ci-only
+          POSTGRES_DB: intermat_rede_test
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U postgres -d intermat_rede_test"
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 15
+    env:
+      PGHOST: 127.0.0.1
+      PGPORT: 5432
+      PGUSER: postgres
+      PGPASSWORD: model-b-ci-only
+      PGDATABASE: intermat_rede_test
+      PGOPTIONS: -csearch_path=public
+    steps:
+      - uses: actions/checkout@v4
+      - name: Bootstrap disposable auth
+        run: psql -X -v ON_ERROR_STOP=1 -f tests/rede.postgres.bootstrap.sql
+      - name: Apply multiempresa schema in disposable PostgreSQL only
+        run: |
+          psql -X -v ON_ERROR_STOP=1 -f supabase/migrations/20261118001000_rede_model_b_core.sql
+          psql -X -v ON_ERROR_STOP=1 -f supabase/migrations/20261118001100_rede_model_b_actions.sql
+      - name: Verify A/B/C tenant isolation and full bilateral transaction cycle
+        run: psql -X -v ON_ERROR_STOP=1 -f tests/rede.postgres.smoke.sql
