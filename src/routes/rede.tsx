@@ -7,6 +7,8 @@ import {
   networkCommand,
   loadNetworkSnapshot,
   createNetworkOrganization,
+  inviteOrganizationMember,
+  acceptOrganizationInvitation,
   type NetworkSnapshot,
   type LoanRow,
   type OrganizationRow,
@@ -22,11 +24,12 @@ export const Route = createFileRoute("/rede")({
   component: MaterialLinkNetwork,
 });
 
-type Tab = "painel" | "parcerias" | "produtos" | "ofertas" | "emprestimos" | "historico";
+type Tab = "painel" | "parcerias" | "equipe" | "produtos" | "ofertas" | "emprestimos" | "historico";
 
 const TABS: readonly { id: Tab; label: string }[] = [
   { id: "painel", label: "Painel" },
   { id: "parcerias", label: "Parcerias" },
+  { id: "equipe", label: "Equipe" },
   { id: "produtos", label: "Meu estoque" },
   { id: "ofertas", label: "Vitrine" },
   { id: "emprestimos", label: "Empréstimos" },
@@ -237,7 +240,10 @@ function MaterialLinkNetwork() {
 
       <main className="mx-auto max-w-7xl space-y-5 px-4 py-6">
         {!organization ? (
-          <CreateOrganization busy={busy} perform={perform} />
+          <div className="grid gap-4 lg:grid-cols-2">
+            <CreateOrganization busy={busy} perform={perform} />
+            <AcceptInvitation busy={busy} perform={perform} />
+          </div>
         ) : organization.status !== "ativa" ? (
           <Card>
             <CardHeader><CardTitle>Verificação empresarial pendente</CardTitle></CardHeader>
@@ -289,6 +295,12 @@ function MaterialLinkNetwork() {
               <Partnerships organizationId={activeOrgId}
                 organizations={organizations} partnerships={partnerships}
                 canCommercial={canCommercial} perform={perform} busy={busy} />
+            )}
+
+            {tab === "equipe" && (
+              <OrganizationTeam organizationId={activeOrgId} userId={user.id}
+                members={snapshot.memberships.filter((m) => m.organizacao_id === activeOrgId)}
+                isManager={canManage} perform={perform} busy={busy} />
             )}
 
             {tab === "produtos" && (
@@ -605,5 +617,94 @@ function Loans({ organizationId, loans, returns, organizations, canCommercial, c
     {loans.length === 0 && <p className="text-muted-foreground text-sm">
       Ainda não existem empréstimos compartilhados com esta empresa.
     </p>}
+  </div>;
+}
+
+function AcceptInvitation({ busy, perform }: { busy: boolean; perform: Perform }) {
+  const [token, setToken] = useState("");
+  return <Card>
+    <CardHeader><CardTitle>Recebi um convite</CardTitle></CardHeader>
+    <CardContent className="space-y-3">
+      <p className="text-muted-foreground text-sm">
+        Um administrador pode convidá-lo para sua empresa.
+        O convite só funciona com o mesmo e-mail confirmado.
+      </p>
+      <form className="space-y-3" onSubmit={(event) => {
+        event.preventDefault();
+        void perform(() => acceptOrganizationInvitation(token.trim()),
+          "Convite aceito. A empresa já está disponível na sua conta.");
+      }}>
+        <Input aria-label="Código do convite" required
+          placeholder="Cole o código enviado pelo administrador"
+          value={token} onChange={(event) => setToken(event.target.value)} />
+        <Button disabled={busy || token.trim().length !== 64}>Aceitar convite</Button>
+      </form>
+    </CardContent>
+  </Card>;
+}
+
+function OrganizationTeam({ organizationId, userId, members, isManager, perform, busy }: {
+  organizationId: string; userId: string;
+  members: NetworkSnapshot["memberships"];
+  isManager: boolean; perform: Perform; busy: boolean;
+}) {
+  const [email, setEmail] = useState("");
+  const [role, setRole] = useState("consulta");
+  const [inviteToken, setInviteToken] = useState("");
+
+  return <div className="space-y-4">
+    <h2 className="text-xl font-semibold">Equipe e permissões</h2>
+    <p className="text-muted-foreground text-sm">
+      Cada colaborador possui permissões por organização. A mesma conta pode
+      desempenhar papéis diferentes em empresas distintas.
+    </p>
+    {isManager && <Card>
+      <CardHeader><CardTitle className="text-base">Convidar colaborador</CardTitle></CardHeader>
+      <CardContent className="space-y-3">
+        <form className="flex flex-wrap items-end gap-2" onSubmit={(event) => {
+          event.preventDefault();
+          void perform(async () => {
+            const invitation = await inviteOrganizationMember(organizationId, email, role);
+            setInviteToken(invitation.token);
+          }, "Convite criado. Envie o código ao colaborador com segurança.");
+        }}>
+          <label className="text-sm">E-mail do colaborador
+            <Input type="email" required value={email}
+              onChange={(event) => setEmail(event.target.value)} />
+          </label>
+          <label className="text-sm">Papel
+            <select aria-label="Papel na empresa" value={role}
+              onChange={(event) => setRole(event.target.value)}
+              className="block rounded-md border bg-background px-3 py-2">
+              {["administrador","comercial","estoque","financeiro","consulta"].map((item) => (
+                <option value={item} key={item}>{item}</option>
+              ))}
+            </select>
+          </label>
+          <Button disabled={busy}>Gerar convite</Button>
+        </form>
+        {inviteToken && <div className="space-y-2 rounded-md border p-3">
+          <p className="text-sm font-medium">Código de convite — visível somente agora</p>
+          <Input aria-label="Código gerado" value={inviteToken} readOnly />
+          <Button variant="outline" size="sm" onClick={() => {
+            void navigator.clipboard.writeText(inviteToken);
+          }}>Copiar código</Button>
+          <p className="text-muted-foreground text-xs">
+            Expira em 7 dias. Não publique este código em canais públicos.
+            Envie somente ao e-mail convidado.
+          </p>
+        </div>}
+      </CardContent>
+    </Card>}
+    <Card><CardHeader><CardTitle className="text-base">Membros ativos</CardTitle></CardHeader>
+      <CardContent className="space-y-2">
+        {members.filter((m) => m.ativo).map((member) => (
+          <div key={member.usuario_id} className="flex justify-between gap-3 border-b py-2 text-sm">
+            <span>{member.usuario_id === userId ? "Você" : `Usuário ${member.usuario_id.slice(0,8)}…`}</span>
+            <Badge variant="outline">{member.papel}</Badge>
+          </div>
+        ))}
+      </CardContent>
+    </Card>
   </div>;
 }
