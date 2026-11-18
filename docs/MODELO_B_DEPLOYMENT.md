@@ -15,6 +15,7 @@
 - [x] Convite, idempotência, estoque, auditoria, legado e TypeScript/build verificados no GitHub Actions
 - [x] Bloqueio das antigas políticas `FOR ALL TO anon` em migration, mantendo os dados de origem
 - [x] Importador de catálogo legado com mapeamento e marcação de saldos negativos
+- [x] Ajuste de estoque por organização com justificativa e histórico de auditoria; proíbe consumir reservas
 - [x] Interface `/rede` para fluxo operacional e redirecionamento das telas unilaterais
 
 ## O que ainda não está entregue como funcionalidade de produção
@@ -40,6 +41,7 @@
    - `20261118001200_rede_convites_membros.sql` — convites de colaboradores
    - `20261118001300_rede_lockdown_legacy.sql` — revoga acesso público antigo (somente junto ao corte do frontend)
    - `20261118001400_rede_legacy_import_tracking.sql` — trilha de importação do legado
+   - `20261118001500_rede_stock_adjustments.sql` — ajustes físicos auditados sem comprometer reservas
 5. Em staging, usar duas contas Auth com e-mail confirmado; o administrador deve confirmar propriedade do CNPJ. O cadastro em `/rede` gera organização com status `pendente`.
 6. **Somente após verificação externa da propriedade da empresa**, um operador com acesso SQL administrativo pode ativar a organização pelo script:
    ```bash
@@ -70,6 +72,7 @@ Os workflows `.github/workflows/quality.yml` e `.github/workflows/model-b-mvp.ym
 - `tests/rede.invites.sql`: convite assinado por conta confirmada, token único e read-only
 - `tests/rede.concurrent.py`: operações simultâneas e revogação do vínculo
 - `tests/rede.import_integrity.sql`: mapeamento do catálogo e quarentena de saldo negativo
+- `tests/rede.stock_adjustment.sql`: ajustes físicos com motivo, prevenção de estoque negativo e permissões por papel
 
 CI não deve receber credenciais de produção. Não foi feita nenhuma chamada de geração, mensagem ou deploy da IA do Lovable.
 
