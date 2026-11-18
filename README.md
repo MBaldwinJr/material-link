@@ -1,3 +1,20 @@
+> **Direção atual do produto (17/11/2026): Modelo B — rede colaborativa multiempresa.**
+>
+> Cada empresa terá conta, membros, catálogo e estoque privativos; empréstimos e
+> devoluções ocorrerão mediante negociação e confirmação de ambas as partes.
+> A implementação existente é uma base unilateral e **não deve ser implantada
+> como rede multiempresa** sem os controles de isolamento previstos.
+>
+> - Decisão técnica: [ADR-0001](docs/adr/0001-modelo-b-rede-multiempresa.md)
+> - Arquitetura alvo: [Modelo B — Arquitetura](docs/MODELO_B_ARQUITETURA.md)
+> - Etapas e entregas: [Modelo B — Roadmap](docs/MODELO_B_ROADMAP.md)
+> - Segurança e migração: [Modelo B — Testes e Migração](docs/MODELO_B_TESTES_E_MIGRACAO.md)
+>
+> Desenvolvimento e testes pelo GitHub/GitHub Actions, sem uso de créditos da IA do Lovable.
+> Nenhuma migration foi autorizada para o banco original nesta branch.
+>
+---
+
 # Material Link
 
 Crie um sistema SaaS completo chamado "InterMat - Gestão de Empréstimos de Materiais", voltado para lojas de materiais de construção que realizam empréstimos de mercadorias entre empresas parceiras.
