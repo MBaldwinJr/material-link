@@ -44,6 +44,8 @@ jobs:
           psql -X -v ON_ERROR_STOP=1 -f supabase/migrations/20261118001200_rede_convites_membros.sql
       - name: Verify A/B/C tenant isolation and full bilateral transaction cycle
         run: psql -X -v ON_ERROR_STOP=1 -f tests/rede.postgres.smoke.sql
+      - name: Verify secure membership invitations and token reuse denial
+        run: psql -X -v ON_ERROR_STOP=1 -f tests/rede.invites.sql
       - name: Verify simultaneous reservations, returns and role revocation
         env:
           MATERIAL_LINK_CI_EPHEMERAL: YES
