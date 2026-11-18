@@ -43,3 +43,7 @@ jobs:
           psql -X -v ON_ERROR_STOP=1 -f supabase/migrations/20261118001100_rede_model_b_actions.sql
       - name: Verify A/B/C tenant isolation and full bilateral transaction cycle
         run: psql -X -v ON_ERROR_STOP=1 -f tests/rede.postgres.smoke.sql
+      - name: Verify simultaneous reservations, returns and role revocation
+        env:
+          MATERIAL_LINK_CI_EPHEMERAL: YES
+        run: python3 tests/rede.concurrent.py
