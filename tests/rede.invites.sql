@@ -36,20 +36,21 @@ UPDATE auth.users SET email_confirmed_at=now()
 
 SET ROLE authenticated;
 SELECT set_config('request.jwt.claim.sub','44444444-4444-4444-8444-444444444444',false);
+-- Accepting an invitation modifies membership. RLS STABLE helpers must be
+-- re-evaluated in a NEW SQL statement/snapshot, as in actual API requests.
+SELECT public.rede_aceitar_convite(current_setting('model_b.invite_token'));
 DO $$
 DECLARE
-  invited JSONB; a UUID; denied BOOLEAN := false;
+  a UUID; denied BOOLEAN := false;
 BEGIN
   SELECT id INTO a FROM public.rede_organizacoes WHERE cnpj='00000000000001';
-  invited := public.rede_aceitar_convite(current_setting('model_b.invite_token'));
-  IF invited->>'organizacao_id' <> a::TEXT OR invited->>'papel' <> 'consulta' THEN
+  IF a IS NULL OR
+     (SELECT count(*) FROM public.rede_membros WHERE organizacao_id=a
+       AND usuario_id=(SELECT auth.uid()) AND ativo) <> 1 THEN
     RAISE EXCEPTION 'Invitation membership was not provisioned';
   END IF;
   IF (SELECT count(*) FROM public.rede_produtos WHERE organizacao_id=a) <> 1 THEN
-    RAISE EXCEPTION 'Invited catalog count %, visible memberships %, JWT uid %',
-      (SELECT count(*) FROM public.rede_produtos WHERE organizacao_id=a),
-      (SELECT count(*) FROM public.rede_membros WHERE usuario_id=(SELECT auth.uid())),
-      (SELECT auth.uid());
+    RAISE EXCEPTION 'Newly invited user cannot consult own organization catalog';
   END IF;
   BEGIN
     PERFORM public.rede_operar(a,'criar_produto',jsonb_build_object(
