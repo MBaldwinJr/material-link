@@ -46,7 +46,10 @@ BEGIN
     RAISE EXCEPTION 'Invitation membership was not provisioned';
   END IF;
   IF (SELECT count(*) FROM public.rede_produtos WHERE organizacao_id=a) <> 1 THEN
-    RAISE EXCEPTION 'New member cannot consult own organization catalog';
+    RAISE EXCEPTION 'Invited catalog count %, visible memberships %, JWT uid %',
+      (SELECT count(*) FROM public.rede_produtos WHERE organizacao_id=a),
+      (SELECT count(*) FROM public.rede_membros WHERE usuario_id=(SELECT auth.uid())),
+      (SELECT auth.uid());
   END IF;
   BEGIN
     PERFORM public.rede_operar(a,'criar_produto',jsonb_build_object(
