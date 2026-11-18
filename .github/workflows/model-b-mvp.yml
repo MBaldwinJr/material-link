@@ -41,6 +41,7 @@ jobs:
         run: |
           psql -X -v ON_ERROR_STOP=1 -f supabase/migrations/20261118001000_rede_model_b_core.sql
           psql -X -v ON_ERROR_STOP=1 -f supabase/migrations/20261118001100_rede_model_b_actions.sql
+          psql -X -v ON_ERROR_STOP=1 -f supabase/migrations/20261118001200_rede_convites_membros.sql
       - name: Verify A/B/C tenant isolation and full bilateral transaction cycle
         run: psql -X -v ON_ERROR_STOP=1 -f tests/rede.postgres.smoke.sql
       - name: Verify simultaneous reservations, returns and role revocation
