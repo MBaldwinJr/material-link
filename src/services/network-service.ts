@@ -135,11 +135,11 @@ export async function networkCommand<T>(
   action: string,
   args: Record<string, string | number | boolean | null>,
 ): Promise<T> {
-  const { data, error } = await networkDb.rpc("rede_operar", {
+  const { data, error } = await networkDb.rpc("rede_operar" as never, {
     p_organizacao_id: organizationId,
     p_acao: action,
     p_dados: args as Json,
-  });
+  } as never);
   if (error) throw error;
   if (data === null) throw new Error("A operação não foi confirmada.");
   return data as T;
@@ -150,11 +150,11 @@ export async function createNetworkOrganization(
   displayName: string,
   cnpj: string,
 ): Promise<OrganizationRow> {
-  const { data, error } = await networkDb.rpc("rede_criar_organizacao", {
+  const { data, error } = await networkDb.rpc("rede_criar_organizacao" as never, {
     p_razao: legalName,
     p_nome: displayName,
     p_cnpj: cnpj,
-  });
+  } as never);
   if (error) throw error;
   if (data === null) throw new Error("A organização não foi criada.");
   return data as unknown as OrganizationRow;
