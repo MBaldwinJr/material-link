@@ -122,6 +122,14 @@ interface NetworkDatabase {
         Args: { p_organizacao_id: string; p_acao: string; p_dados: Json };
         Returns: Json;
       };
+      rede_convidar_membro: {
+        Args: { p_organizacao_id: string; p_email: string; p_papel: string };
+        Returns: Json;
+      };
+      rede_aceitar_convite: {
+        Args: { p_token: string };
+        Returns: Json;
+      };
     };
     Enums: Record<string, never>;
     CompositeTypes: Record<string, never>;
@@ -158,6 +166,34 @@ export async function createNetworkOrganization(
   if (error) throw error;
   if (data === null) throw new Error("A organização não foi criada.");
   return data as unknown as OrganizationRow;
+}
+
+export interface MemberInvitation {
+  token: string;
+  email: string;
+  papel: string;
+  expira_em: string;
+}
+
+export async function inviteOrganizationMember(
+  organizationId: string, email: string, role: string,
+): Promise<MemberInvitation> {
+  const { data, error } = await networkDb.rpc("rede_convidar_membro" as never, {
+    p_organizacao_id: organizationId, p_email: email, p_papel: role,
+  } as never);
+  if (error) throw error;
+  if (data === null) throw new Error("Convite não gerado.");
+  return data as unknown as MemberInvitation;
+}
+
+export async function acceptOrganizationInvitation(
+  token: string,
+): Promise<{ organizacao_id: string; papel: string; status: string }> {
+  const { data, error } = await networkDb.rpc("rede_aceitar_convite" as never,
+    { p_token: token } as never);
+  if (error) throw error;
+  if (data === null) throw new Error("Não foi possível aceitar este convite.");
+  return data as unknown as { organizacao_id: string; papel: string; status: string };
 }
 
 export interface NetworkSnapshot {
