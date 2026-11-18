@@ -33,6 +33,16 @@ UPDATE public.rede_organizacoes SET status='ativa'
 WHERE cnpj IN ('00000000000001','00000000000002','00000000000003');
 
 SET ROLE authenticated;
+SELECT set_config('request.jwt.claim.sub','44444444-4444-4444-8444-444444444444',false);
+DO $
+BEGIN
+  IF EXISTS (SELECT 1 FROM public.rede_organizacoes) THEN
+    RAISE EXCEPTION 'Authenticated outsider can browse business directory';
+  END IF;
+END $;
+RESET ROLE;
+
+SET ROLE authenticated;
 SELECT set_config('request.jwt.claim.sub','11111111-1111-4111-8111-111111111111',false);
 DO $$
 DECLARE a UUID; b UUID; created JSONB;
