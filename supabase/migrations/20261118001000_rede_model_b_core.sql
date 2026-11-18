@@ -220,7 +220,14 @@ $$;
 -- but pending organizations and private team data remain hidden.
 CREATE POLICY rede_organizacoes_visible ON public.rede_organizacoes
   FOR SELECT TO authenticated USING (
-    rede_private.has_membership(id) OR status='ativa'
+    rede_private.has_membership(id)
+    OR (
+      status='ativa'
+      AND EXISTS (
+        SELECT 1 FROM public.rede_membros m
+        WHERE m.usuario_id=(SELECT auth.uid()) AND m.ativo
+      )
+    )
   );
 
 CREATE POLICY rede_membros_visible ON public.rede_membros
