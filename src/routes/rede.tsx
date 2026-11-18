@@ -58,6 +58,7 @@ function MaterialLinkNetwork() {
   const [user, setUser] = useState<User | null>(null);
   const [authReady, setAuthReady] = useState(false);
   const [snapshot, setSnapshot] = useState<NetworkSnapshot | null>(null);
+  const [loadError, setLoadError] = useState<string | null>(null);
   const [activeOrgId, setActiveOrgId] = useState("");
   const [busy, setBusy] = useState(false);
   const [authMode, setAuthMode] = useState<"login" | "signup">("login");
@@ -68,6 +69,7 @@ function MaterialLinkNetwork() {
   const refresh = useCallback(async () => {
     const next = await loadNetworkSnapshot();
     setSnapshot(next);
+    setLoadError(null);
     setActiveOrgId((current) => {
       const eligible = next.memberships.filter((member) => member.ativo);
       return eligible.some((member) => member.organizacao_id === current)
@@ -84,6 +86,7 @@ function MaterialLinkNetwork() {
       if (!live) return;
       setUser(session?.user ?? null);
       setSnapshot(null);
+      setLoadError(null);
       setActiveOrgId("");
     });
     return () => { live = false; subscription.unsubscribe(); };
@@ -95,12 +98,13 @@ function MaterialLinkNetwork() {
     void loadNetworkSnapshot().then((next) => {
       if (!live) return;
       setSnapshot(next);
+      setLoadError(null);
       setActiveOrgId((current) =>
         next.memberships.some((item) => item.ativo && item.organizacao_id === current)
           ? current : next.memberships.find((item) => item.ativo)?.organizacao_id ?? "",
       );
     }).catch((error: unknown) => {
-      if (live) toast.error(messageFromError(error));
+      if (live) setLoadError(messageFromError(error));
     });
     return () => { live = false; };
   }, [user?.id, user]);
@@ -202,6 +206,23 @@ function MaterialLinkNetwork() {
   }
 
   if (!snapshot) {
+    if (loadError) {
+      return <div className="grid min-h-screen place-items-center bg-muted/40 px-4">
+        <Card className="w-full max-w-lg">
+          <CardHeader><CardTitle>Banco da rede ainda não disponível</CardTitle></CardHeader>
+          <CardContent className="space-y-3">
+            <p role="alert" className="text-sm text-destructive">{loadError}</p>
+            <p className="text-muted-foreground text-sm">
+              A interface está preparada, mas o Supabase precisa receber as migrations
+              do Modelo B e as permissões corretas antes da ativação.
+              Nenhum dado legado foi alterado por esta tela.
+            </p>
+            <Button onClick={() => void refresh().catch((error: unknown) =>
+              setLoadError(messageFromError(error)))}>Tentar novamente</Button>
+          </CardContent>
+        </Card>
+      </div>;
+    }
     return <div role="status" className="grid min-h-screen place-items-center">Carregando sua rede...</div>;
   }
 
