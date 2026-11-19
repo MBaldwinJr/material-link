@@ -203,13 +203,15 @@ BEGIN
 
   ELSIF p_acao IN ('aceitar_emprestimo','recusar_emprestimo',
                    'expedir_emprestimo','confirmar_recebimento',
-                   'cancelar_emprestimo','enviar_devolucao') THEN
+                   'cancelar_emprestimo','cancelar_reserva','enviar_devolucao') THEN
     v_id := (p_dados->>'emprestimo_id')::UUID;
     SELECT * INTO v_loan FROM public.rede_emprestimos
       WHERE id=v_id FOR UPDATE;
     IF NOT FOUND THEN RAISE EXCEPTION 'Empréstimo não encontrado' USING ERRCODE='23503'; END IF;
     v_ver := (p_dados->>'expected_version')::INTEGER;
-    IF v_ver IS DISTINCT FROM v_loan.versao THEN
+    -- A return retry must resolve an existing idempotency key BEFORE
+    -- rejecting the original expected_version. No new return bypasses it.
+    IF p_acao <> 'enviar_devolucao' AND v_ver IS DISTINCT FROM v_loan.versao THEN
       RAISE EXCEPTION 'A operação mudou: atualize antes de confirmar' USING ERRCODE='40001';
     END IF;
     IF p_acao = 'aceitar_emprestimo' THEN
@@ -258,6 +260,28 @@ BEGIN
       END IF;
       UPDATE public.rede_emprestimos SET
         status='cancelado',versao=versao+1,atualizado_em=now()
+        WHERE id=v_id RETURNING * INTO v_loan;
+
+    ELSIF p_acao = 'cancelar_reserva' THEN
+      -- A mutually accepted loan can be cancelled before dispatch;
+      -- release exactly its reservation, without touching physical stock.
+      IF v_loan.status <> 'aceito'
+         OR p_organizacao_id NOT IN (v_loan.cedente_id, v_loan.tomadora_id)
+         OR NOT rede_private.has_role(p_organizacao_id,ARRAY[
+             'proprietario','administrador','comercial']) THEN
+        RAISE EXCEPTION 'Cancelamento de reserva não autorizado'
+          USING ERRCODE='42501';
+      END IF;
+      SELECT * INTO v_prod FROM public.rede_produtos
+        WHERE id=v_loan.produto_id AND organizacao_id=v_loan.cedente_id
+        FOR UPDATE;
+      IF NOT FOUND OR v_prod.reservado < v_loan.quantidade THEN
+        RAISE EXCEPTION 'Reserva de estoque inconsistente' USING ERRCODE='23514';
+      END IF;
+      UPDATE public.rede_produtos
+        SET reservado=reservado-v_loan.quantidade WHERE id=v_prod.id;
+      UPDATE public.rede_emprestimos
+        SET status='cancelado',versao=versao+1,atualizado_em=now()
         WHERE id=v_id RETURNING * INTO v_loan;
 
     ELSIF p_acao = 'expedir_emprestimo' THEN
@@ -317,6 +341,10 @@ BEGIN
           RAISE EXCEPTION 'Idempotência da devolução inválida' USING ERRCODE='23505';
         END IF;
         RETURN to_jsonb(v_return);
+      END IF;
+      IF v_ver IS DISTINCT FROM v_loan.versao THEN
+        RAISE EXCEPTION 'A operação mudou: atualize antes de confirmar'
+          USING ERRCODE='40001';
       END IF;
       IF v_loan.status NOT IN ('recebido','devolucao_em_transito') THEN
         RAISE EXCEPTION 'Empréstimo não aceita novas devoluções' USING ERRCODE='23514';
