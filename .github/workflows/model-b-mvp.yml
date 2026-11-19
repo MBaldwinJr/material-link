@@ -55,6 +55,8 @@ jobs:
         run: psql -X -v ON_ERROR_STOP=1 -f tests/rede.legacy_lockdown.sql
       - name: Verify A/B/C tenant isolation and full bilateral transaction cycle
         run: psql -X -v ON_ERROR_STOP=1 -f tests/rede.postgres.smoke.sql
+      - name: Verify stale-version retries and pre-dispatch reservation cancellation
+        run: psql -X -v ON_ERROR_STOP=1 -f tests/rede.retry_cancel.sql
       - name: Verify secure membership invitations and token reuse denial
         run: psql -X -v ON_ERROR_STOP=1 -f tests/rede.invites.sql
       - name: Test verified activation and lossless legacy catalog import
