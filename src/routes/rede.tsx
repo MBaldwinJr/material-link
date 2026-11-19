@@ -636,6 +636,11 @@ function Loans({ organizationId, loans, returns, organizations, canCommercial, c
           </>}
           {!lender && canCommercial && loan.status === "solicitado" &&
             <Button variant="outline" size="sm" disabled={busy} onClick={() => act(loan, "cancelar_emprestimo", "Solicitação cancelada.")}>Cancelar</Button>}
+          {canCommercial && loan.status === "aceito" &&
+            <Button variant="outline" size="sm" disabled={busy}
+              onClick={() => act(loan, "cancelar_reserva", "Reserva cancelada e estoque liberado.")}>
+              Cancelar antes da expedição
+            </Button>}
           {lender && canStock && loan.status === "aceito" &&
             <Button size="sm" disabled={busy} onClick={() => act(loan, "expedir_emprestimo", "Material expedido.")}>Confirmar saída</Button>}
           {!lender && canStock && loan.status === "expedido" &&
