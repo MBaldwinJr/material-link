@@ -456,8 +456,35 @@ function Products({ organizationId, products, canStock, canCommercial, perform, 
   const [adjustProduct, setAdjustProduct] = useState("");
   const [adjustDelta, setAdjustDelta] = useState("0");
   const [adjustReason, setAdjustReason] = useState("");
+  const [catalogSearch, setCatalogSearch] = useState("");
+  const [catalogPage, setCatalogPage] = useState(0);
+  const searchTerm = catalogSearch.trim().toLocaleLowerCase("pt-BR");
+  const matchingProducts = products
+    .filter((p) => !searchTerm ||
+      p.codigo.toLocaleLowerCase("pt-BR").includes(searchTerm) ||
+      p.descricao.toLocaleLowerCase("pt-BR").includes(searchTerm))
+    .sort((a, b) => a.descricao.localeCompare(b.descricao, "pt-BR"));
+  const pageSize = 50;
+  const pageCount = Math.max(1, Math.ceil(matchingProducts.length / pageSize));
+  const currentPage = Math.min(catalogPage, pageCount - 1);
+  const visibleProducts = matchingProducts.slice(currentPage * pageSize,
+    (currentPage + 1) * pageSize);
+  // Preserve selected options when users change the search. Never render
+  // thousands of <option> elements from an imported ERP catalog.
+  const selectOptions = [
+    ...products.filter((p) => p.id === publishId || p.id === adjustProduct),
+    ...matchingProducts.filter((p) => p.id !== publishId && p.id !== adjustProduct).slice(0, 100),
+  ];
   return <div className="space-y-4">
     <h2 className="text-xl font-semibold">Estoque privado da empresa</h2>
+    <Input type="search" aria-label="Pesquisar produtos"
+      placeholder="Buscar por código ou descrição no catálogo completo"
+      value={catalogSearch}
+      onChange={(event) => { setCatalogSearch(event.target.value); setCatalogPage(0); }} />
+    <p className="text-muted-foreground text-sm" role="status">
+      {matchingProducts.length} de {products.length} produtos localizados
+      {matchingProducts.length > 100 ? " • Digite para localizar itens nos seletores" : ""}
+    </p>
     <p className="text-muted-foreground text-sm">Preços internos e saldo físico não são compartilhados com parceiros.</p>
     <div className="grid gap-3 lg:grid-cols-2">
       {canStock && <Card><CardHeader><CardTitle className="text-base">Cadastrar produto</CardTitle></CardHeader>
@@ -490,7 +517,7 @@ function Products({ organizationId, products, canStock, canCommercial, perform, 
             onChange={(e) => setPublishId(e.target.value)}
             className="w-full rounded-md border bg-background px-3 py-2">
             <option value="">Escolha um produto seu</option>
-            {products.map((p) => <option key={p.id} value={p.id}>{p.codigo} — {p.descricao}</option>)}
+            {selectOptions.map((p) => <option key={p.id} value={p.id}>{p.codigo} — {p.descricao}</option>)}
           </select>
           <Input aria-label="Valor da oferta em reais" type="number" min="0" step="0.01" required
             value={price} onChange={(e) => setPrice(e.target.value)} />
@@ -511,7 +538,7 @@ function Products({ organizationId, products, canStock, canCommercial, perform, 
             onChange={(event) => setAdjustProduct(event.target.value)}
             className="min-w-52 rounded-md border bg-background px-3 py-2">
             <option value="">Selecione um produto</option>
-            {products.map((product) => <option value={product.id} key={product.id}>
+            {selectOptions.map((product) => <option value={product.id} key={product.id}>
               {product.codigo} — {product.descricao}
             </option>)}
           </select>
@@ -529,12 +556,33 @@ function Products({ organizationId, products, canStock, canCommercial, perform, 
     </Card>}
     <Card><CardContent className="p-4">
       <div className="space-y-2">
-        {products.map((p) => <div key={p.id} className="flex flex-wrap items-center justify-between gap-2 border-b py-3 text-sm last:border-0">
+        {visibleProducts.map((p) => <div key={p.id} className="flex flex-wrap items-center justify-between gap-2 border-b py-3 text-sm last:border-0">
           <span><strong>{p.codigo}</strong> — {p.descricao}</span>
           <span>Estoque: {formatQuantity(p.estoque)} {p.unidade} • Reserva: {formatQuantity(p.reservado)}</span>
         </div>)}
-        {products.length === 0 && <p className="text-muted-foreground">Nenhum produto próprio cadastrado.</p>}
+        {matchingProducts.length === 0 && (
+          <p className="text-muted-foreground">
+            {products.length === 0 ? "Nenhum produto próprio cadastrado." : "Nenhum produto corresponde à busca."}
+          </p>
+        )}
       </div>
+      {matchingProducts.length > pageSize && (
+        <div className="mt-4 flex flex-wrap items-center justify-between gap-3 border-t pt-4">
+          <span className="text-muted-foreground text-sm" aria-live="polite">
+            Mostrando {currentPage * pageSize + 1}–{Math.min((currentPage + 1) * pageSize, matchingProducts.length)}
+            {" "}de {matchingProducts.length}
+          </span>
+          <div className="flex items-center gap-2">
+            <Button type="button" variant="outline" size="sm"
+              disabled={currentPage === 0}
+              onClick={() => setCatalogPage(currentPage - 1)}>Anterior</Button>
+            <span className="text-sm">{currentPage + 1} / {pageCount}</span>
+            <Button type="button" variant="outline" size="sm"
+              disabled={currentPage >= pageCount - 1}
+              onClick={() => setCatalogPage(currentPage + 1)}>Próximo</Button>
+          </div>
+        </div>
+      )}
     </CardContent></Card>
   </div>;
 }

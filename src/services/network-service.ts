@@ -223,29 +223,64 @@ export interface NetworkSnapshot {
   events: EventRow[];
 }
 
-export async function loadNetworkSnapshot(): Promise<NetworkSnapshot> {
-  const [organizations, memberships, partnerships, products, offers, loans, returns, events] =
-    await Promise.all([
-      networkDb.from("rede_organizacoes").select("*").order("nome_fantasia").limit(200),
-      networkDb.from("rede_membros").select("*").limit(200),
-      networkDb.from("rede_parcerias").select("*").order("criado_em", { ascending: false }).limit(300),
-      networkDb.from("rede_produtos").select("*").order("descricao").limit(500),
-      networkDb.from("rede_ofertas").select("*").order("criado_em", { ascending: false }).limit(500),
-      networkDb.from("rede_emprestimos").select("*").order("criado_em", { ascending: false }).limit(500),
-      networkDb.from("rede_devolucoes").select("*").order("criado_em", { ascending: false }).limit(500),
-      networkDb.from("rede_eventos").select("*").order("criado_em", { ascending: false }).limit(500),
-    ]);
-  for (const result of [organizations, memberships, partnerships, products, offers, loans, returns, events]) {
-    if (result.error) throw result.error;
+/** PostgREST may cap each request (often at 1,000 rows).
+ * Use stable primary-key ordering and smaller pages instead of silently
+ * dropping catalog or loan records from the network dashboard.
+ */
+const NETWORK_PAGE_SIZE = 400;
+type PageResult<Row> = {
+  data: Row[] | null;
+  error: { message: string } | null;
+};
+
+async function loadEveryPage<Row>(
+  fetchPage: (from: number, to: number) => Promise<PageResult<Row>>,
+): Promise<Row[]> {
+  const all: Row[] = [];
+  for (let offset = 0; ; offset += NETWORK_PAGE_SIZE) {
+    const { data, error } = await fetchPage(
+      offset, offset + NETWORK_PAGE_SIZE - 1,
+    );
+    if (error) throw new Error(error.message);
+    if (data === null) throw new Error("Consulta da rede sem resultado válido.");
+    all.push(...data);
+    if (data.length < NETWORK_PAGE_SIZE) return all;
   }
+}
+
+export async function loadNetworkSnapshot(): Promise<NetworkSnapshot> {
+  const [
+    organizations, memberships, partnerships, products, offers, loans,
+    returns, events,
+  ] = await Promise.all([
+    loadEveryPage<OrganizationRow>(async (from, to) =>
+      networkDb.from("rede_organizacoes").select("*")
+        .order("id", { ascending: true }).range(from, to)),
+    loadEveryPage<MembershipRow>(async (from, to) =>
+      networkDb.from("rede_membros").select("*")
+        .order("organizacao_id", { ascending: true })
+        .order("usuario_id", { ascending: true }).range(from, to)),
+    loadEveryPage<PartnershipRow>(async (from, to) =>
+      networkDb.from("rede_parcerias").select("*")
+        .order("id", { ascending: true }).range(from, to)),
+    loadEveryPage<ProductRow>(async (from, to) =>
+      networkDb.from("rede_produtos").select("*")
+        .order("id", { ascending: true }).range(from, to)),
+    loadEveryPage<OfferRow>(async (from, to) =>
+      networkDb.from("rede_ofertas").select("*")
+        .order("id", { ascending: true }).range(from, to)),
+    loadEveryPage<LoanRow>(async (from, to) =>
+      networkDb.from("rede_emprestimos").select("*")
+        .order("id", { ascending: true }).range(from, to)),
+    loadEveryPage<ReturnRow>(async (from, to) =>
+      networkDb.from("rede_devolucoes").select("*")
+        .order("id", { ascending: true }).range(from, to)),
+    loadEveryPage<EventRow>(async (from, to) =>
+      networkDb.from("rede_eventos").select("*")
+        .order("id", { ascending: true }).range(from, to)),
+  ]);
   return {
-    organizations: organizations.data ?? [],
-    memberships: memberships.data ?? [],
-    partnerships: partnerships.data ?? [],
-    products: products.data ?? [],
-    offers: offers.data ?? [],
-    loans: loans.data ?? [],
-    returns: returns.data ?? [],
-    events: events.data ?? [],
+    organizations, memberships, partnerships, products,
+    offers, loans, returns, events,
   };
 }
